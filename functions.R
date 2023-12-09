@@ -12,24 +12,24 @@
 # compleemtn transition # by default for all states unless otherwise specified
 
 # Define a simple S3 class for a plot
-gmod <- function(n_cycles = 40) {
-  gmod_obj <- list(n_cycles = n_cycles)
+gmod <- function(n_cycles = 40, 
+                 states = NULL,
+                 events = NULL,
+                 initial_probs = NULL,
+                 trans_prob = NULL) {
+  gmod_obj <- list(n_cycles = n_cycles, 
+                   states = states,
+                   events = events,
+                   initial_probs = initial_probs,
+                   trans_prob = trans_prob)
   class(gmod_obj) <- "gmod_class"
-  
   gmod_obj
 }
 
 # Define a method for the `+` operator for `gmod` objects
 `+.gmod_class` <- function(gmod_obj, layer) {
   # Add the layer to the gmod object
-  type <- layer$type
-  layer[["type"]] <- NULL
-  if (type == "event"){
-    gmod_obj[[type]] <- append(gmod_obj[[type]], list(layer))
-  } else {
-    gmod_obj[[type]] <- layer
-    
-  }
+  gmod_obj$layers <- append(gmod_obj$layers, list(layer))
   # Return the modified gmod object
   gmod_obj
 }
@@ -54,7 +54,7 @@ markov_states <- function(...){
   list(type = "markov_states", markov_names = c(...))
 }
 events <- function(...){
-  list(type = "events", event_names = c(...))
+  list(type = "events", events = c(...))
 }
 
 
@@ -63,7 +63,7 @@ curr_state <- function(){
 }
 
 is_curr_state <- function(state){
-  return(T)
+  return(state)
 }
 # Define a placeholder function for prob_left()
 prob_left <- function() {

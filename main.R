@@ -21,13 +21,23 @@ event_names <- c("Progress", "Die") # verbs
 # remainder prob, either Inf or prob_left()
 # curr_state, either do curr_state() or "curr_state"
 
+# Usage example in a ggplot-like style with '+'
+my_model <- gmod() +
+  decisions("NoTrt", "TrtA", "TrtB") +
+  markov_states("Moderate", "Severe", "Dead") +
+  events("DIE", "PROGRESS") +
+  initial_probs(states = c("Moderate", "Severe", "Dead"), probs = c(1, 0, 0)) +
+  add_event(name = "DIE", if_event = c(TRUE, FALSE), then = c("Dead", "PROGRESS"), with_probs = c(0.1, Inf)) +
+  add_event(name = "PROGRESS", if_event = c(TRUE, FALSE), then = c("Severe", "Moderate"), with_probs = c(0.2, Inf))
+
 # You can continue adding more layers (+) to build the Markov model using this style.
+
 
 mygmod <- gmod() + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   markov_states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
-  initial_probs(states = c("Moderate", "Severe", "Dead"), probs = c(1,0,0)) +  
+  initial_probs(states = state_names, probs = c(1,0,0)) +  
   add_event(name = "DIE",  
             if_event = c(T, F), 
             then = c("Dead", "PROGRESS"), 
