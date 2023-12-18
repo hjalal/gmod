@@ -34,12 +34,12 @@ mygmod <- gmod() +
   # previous event() 
   add_event(name = "DIE",  
             if_event = c(T, F), 
-            then = c("Dead", "PROGRESS"), 
+            goto = c("Dead", "PROGRESS"), 
             # probs - can also ignore the last entry - assumed = remainder()
             with_probs = c(f(curr_state), prob_left())) +
   add_event(name = "PROGRESS", 
             if_event = c(T, F), 
-            then = c("Severe", stay()), 
+            goto = c("Severe", stay()), 
             with_probs = c(f(current_state(), decision()), prob_left()))
 
 mygmod
