@@ -11,19 +11,37 @@ pMortMod	<- 0.050
 pMortSev	<- 0.200
 
 
+# without arguments because it gets determined by the local environment
+rrProg <- function(decision){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  df_rrProg$value[df_rrProg$decision == decision]
+}
+
+pDie <- function(state){
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  df_pDie$value[df_pDie$state == state]
+}
+
+pProg <- function(state, decision){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  (state=="Moderate")*rrProg(decision)*pProgNoTrt
+}
+
+
 # model design ==========
 # must be unique events = verbs
 state_names <- c("Moderate", "Severe", "Dead")
 decision_names <- c("NoTrt", "TrtA", "TrtB")
 event_names <- c("Progress", "Die") # verbs
 
-rrProg_df <- data.frame(decision_names = decision_names, 
-                     values = c(1, rrProgTrtA, rrProgTrtB))
-rrProg_df
+df_rrProg <- data.frame(decision = c(decision_names), 
+                     value = c(1, rrProgTrtA, rrProgTrtB))
+df_rrProg
 
-pDie <- data.frame(state_names = state_names, 
-                   values = c(pMortMod, pMortSev, Inf))
-pDie
+df_pDie <- data.frame(state = state_names, 
+                   value = c(pMortMod, pMortSev, 1))
+df_pDie
 # simplest case 
 # remainder prob, either Inf or prob_left()
 # curr_state, either do curr_state() or "curr_state"
@@ -40,11 +58,11 @@ mygmod <- gmod() +
   add_event(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
-            with_probs = c(0.1, Inf)) +
+            with_probs = c(pDie(state), Inf)) +
   add_event(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
-            with_probs = c(0.2 * is_curr_state("Moderate"), Inf))
+            with_probs = c(pProg(state, decision), Inf))
 
 gmod_obj <- print(mygmod)
 #gmod_obj <- mygmod
@@ -62,7 +80,9 @@ first_event <- get_first_event(events_df)
 gmod_obj$states
 
 end_state <- "Severe"
+get_prob_chain(gmod_obj, events_df, end_state = "Severe")
 get_prob_chain(gmod_obj, events_df, end_state = "Dead")
+get_prob_chain(gmod_obj, events_df, end_state = "Moderate")
 get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
 
 

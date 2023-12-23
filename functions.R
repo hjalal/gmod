@@ -27,9 +27,9 @@ event_dependencies <- function(gmod_obj){
   dependencies <- list()
   for (l in event_layers){
     for (k in l$goto){
-    dependencies <- append(dependencies, 
-                           c(from = l$name, from_type = l$type,
-                             to = k, to_type = obj_type(k)))
+      dependencies <- append(dependencies, 
+                             c(from = l$name, from_type = l$type,
+                               to = k, to_type = obj_type(k)))
     }
   }
   return(dependencies)
@@ -74,31 +74,62 @@ print.gmod_class <- function(gmod_obj){
     model_obj$n_events <- length(model_obj$events)
     return(model_obj) 
   }
- add_markov_initial_probs <- function(){
-   markov_p0 <- retrieve_layer_by_type(gmod_obj, type = "initial_prob")
-   p0 <- markov_p0$probs
-   names(p0) <- markov_p0$states
-   for (d in model_obj$decisions){
-     model_obj[[d]]$p0 <- p0
-   }
-   return(model_obj)
- }
- add_markov_transition_matrix <- function(){
-   P <- matrix(0, nrow = model_obj$n_states, ncol = model_obj$n_states)
-   colnames(P) <- rownames(P) <- model_obj$states
-   for (d in model_obj$decisions){
-     model_obj[[d]]$P <- P
-   }
-   return(model_obj)
- }
- 
+
+
+  
   model_obj <- add_decision_info()
   model_obj <- add_markov_info()
   model_obj <- add_event_info()
-  model_obj <- add_markov_initial_probs()
-  model_obj <- add_markov_transition_matrix()
+  model_obj <- add_markov_initial_probs(gmod_obj, model_obj)
+  model_obj <- add_markov_transition_matrix(gmod_obj, model_obj)
   #return(model_obj)
   print(model_obj)
+}
+
+add_markov_initial_probs <- function(gmod_obj, model_obj){
+  markov_p0 <- retrieve_layer_by_type(gmod_obj, type = "initial_prob")
+  p0 <- markov_p0$probs
+  names(p0) <- markov_p0$states
+  for (d in model_obj$decisions){
+    model_obj[[d]]$p0 <- p0
+  }
+  return(model_obj)
+}
+
+add_markov_transition_matrix <- function(gmod_obj, model_obj){
+  states <- model_obj$states
+  n_states <- model_obj$n_states
+  events_df <- get_event_df(gmod_obj)
+  first_event <- get_first_event(events_df)
+  
+
+  vec_p_raw <- vec_p_stay <- rep("0", n_states)
+  names(vec_p_raw) <- names(vec_p_stay) <- states
+  for (state in states){
+    vec_p_raw[state] <- get_prob_chain(gmod_obj, events_df, end_state = state)
+    vec_p_stay[state] <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+  }
+  
+  # add "curr_state" ones as well here to form P_raw as a matrix
+  for (decision in model_obj$decisions){
+    model_obj[[decision]]$P_raw <- matrix("0", nrow = n_states, ncol = n_states)
+    model_obj[[decision]]$P <- matrix(0, nrow = n_states, ncol = n_states)
+    rownames(model_obj[[decision]]$P_raw) <- colnames(model_obj[[decision]]$P_raw) <- states
+    rownames(model_obj[[decision]]$P) <- colnames(model_obj[[decision]]$P) <- states
+    
+  for (dest in states){
+    for (state in states){
+      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+      if (state == dest){
+        p_trans_formula <- paste0(p_trans_formula, "+", get_prob_chain(gmod_obj, events_df, end_state = "curr_state"))
+      }    
+      model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
+      model_obj[[decision]]$P[state, dest] <- eval(parse(text = p_trans_formula))
+    }
+  }
+  }
+
+  return(model_obj)
 }
 
 retrieve_layer_by_type <- function(gmod_obj, type){
@@ -135,11 +166,13 @@ retrieve_layer_by_type <- function(gmod_obj, type){
 
 add_event <- function(name, if_event, goto, with_probs){
   # events are the links that can either go to states or other events
+  input_string <- deparse(substitute(with_probs))
   list(type = "event", 
        name = name, 
        if_event = if_event, 
        goto = goto, 
-       with_probs = with_probs)
+       with_probs = probs2string(input_string)
+  )
 }
 initial_probs <- function(states, probs){
   list(type = "initial_prob", states = states, probs = probs)
@@ -319,25 +352,57 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
   sel_events_df <- events_df %>% 
     filter(goto == end_state)
   n_row <- nrow(sel_events_df)
-  prob_chain <- 0
+  prob_chain <- ""
   # for each row, create chain
-  for (i in 1:n_row){
-    # from each then go to "name" and 
-    # concatenate until reaching first_event 
-    # there should be a single first_event
-    # otherwise error
-    curr_row <- sel_events_df[i,]
-    p <- 1
-    while(TRUE){
-      # cumulate and get p where goto pf prev row == name of curr_row
-      p <- curr_row$with_probs * p
-      # stop if curr_row$name == first_event
-      if (curr_row$name == first_event) break
-      # set prev_row to current row
-      curr_row <- events_df[events_df$goto == curr_row$name, ]
+  if (n_row > 0){ # some states leads to the current state
+    for (i in 1:n_row){
+      # from each then go to "name" and 
+      # concatenate until reaching first_event 
+      # there should be a single first_event
+      # otherwise error
+      curr_row <- sel_events_df[i,]
+      p <- ""
+      while(TRUE){
+        # cumulate and get p where goto pf prev row == name of curr_row
+        if (p == ""){
+          p <- paste0("(",curr_row$with_probs,")")
+        } else {
+          p <- paste0( p, "*", "(",curr_row$with_probs,")")
+        }
+        # stop if curr_row$name == first_event
+        if (curr_row$name == first_event) break
+        # set prev_row to current row
+        curr_row <- events_df[events_df$goto == curr_row$name, ]
+      }
+      if (prob_chain == ""){
+        prob_chain <- p
+      } else {
+        prob_chain <- paste0(prob_chain, "+", p)
+      }
     }
-    prob_chain <- prob_chain + p
+  } else { # if there are no events leading to the current state
+    prob_chain <- "0"
   }
   # remove row
   return(prob_chain)
+}
+
+
+# Function to return the name of a function as a string
+probs2string <- function(input_string) {
+  # https://stackoverflow.com/questions/35347537/using-strsplit-in-r-ignoring-anything-in-parentheses
+  #input_string <- deparse(substitute(probs))
+  # Extract elements within c() using regex
+  cleaned_string <- sub("^c\\((.*)\\)$", "\\1", input_string)
+  extracted_elements <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
+  #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
+  # Split the elements by comma (,) and remove leading/trailing spaces
+  y <- trimws(unlist(strsplit(extracted_elements, ",")))
+  # remove complement in "inf"
+  inf_index <- y == "Inf"
+  if (any(inf_index)){
+    sum_others <- paste0(y[!inf_index], collapse = "+")
+    y[inf_index] <- paste0("1-(", sum_others, ")")
+  }
+  return(y)
 }
