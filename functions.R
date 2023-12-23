@@ -16,9 +16,16 @@
 
 
 # Define a simple S3 class for a plot
-gmod <- function(n_cycles = 40) {
-  gmod_obj <- list(n_cycles = n_cycles)
-  class(gmod_obj) <- "gmod_class"
+gmod <- function(model_type) {
+  gmod_obj <- list()
+  model_type <- tolower(model_type)
+  if (model_type == "markov"){
+  class(gmod_obj) <- c("gmod_markov", "gmod_class")
+  } else if (model_type == "decision"){
+    class(gmod_obj) <- c("gmod_decision", "gmod_class")
+  } else {
+    stop(paste("model_type can either be Markov or Decision. Model type = ", model_type, "is not supported."))
+  }
   gmod_obj
 }
 
@@ -49,8 +56,93 @@ retrieve_obj_type <- function(gmod_obj, obj){
   }
 }
 
-print.gmod_class <- function(gmod_obj){
-  print("Hey!")
+# if class is Decision
+print.gmod_decision <- function(gmod_obj){
+  # here we will have an environment to parse the gmod_object
+  model_obj <- list()
+  add_decision_info <- function(){
+    # retrieve states layer
+    decision_layer <- retrieve_layer_by_type(gmod_obj, type = "decisions")
+    model_obj$decisions <- decision_layer$decisions
+    model_obj$n_decisions <- length(model_obj$decisions)
+    return(model_obj)
+  }
+  add_outcome_info <- function(){
+    # retrieve states layer
+    outcomes_layer <- retrieve_layer_by_type(gmod_obj, type = "outcomes")
+    model_obj$outcomes <- outcomes_layer$outcomes
+    model_obj$n_outcomes <- length(model_obj$outcomes)
+    return(model_obj)
+  }
+  add_event_info <- function(){
+    # retrieve states layer
+    event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
+    model_obj$events <- event_layer$events
+    model_obj$n_events <- length(model_obj$events)
+    return(model_obj) 
+  }
+  model_obj <- add_decision_info()
+  model_obj <- add_outcome_info()
+  model_obj <- add_event_info()
+  
+  model_obj <- add_outcome_probs(gmod_obj, model_obj)
+  #return(model_obj)
+  print(model_obj)
+}
+
+add_outcome_probs <- function(gmod_obj, model_obj){
+  outcomes <- model_obj$outcomes
+  n_outcomes <- model_obj$n_outcomes
+  events_df <- get_event_df(gmod_obj)
+  first_event <- get_first_event(events_df)
+  
+  vec_p_raw <- vec_p_stay <- rep("0", n_outcomes)
+  names(vec_p_raw) <- names(vec_p_stay) <- outcomes
+  for (outcome in outcomes){
+    vec_p_raw[outcome] <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
+    #vec_p_stay[outcome] <- get_prob_chain(gmod_obj, events_df, end_outcome = "curr_outcome")
+  }
+  
+  # add "curr_outcome" ones as well here to form P_raw as a matrix
+  for (decision in model_obj$decisions){
+    model_obj[[decision]]$P_raw <- rep("0", n_outcomes)
+    model_obj[[decision]]$P <- rep(0, n_outcomes)
+    names(model_obj[[decision]]$P_raw) <- outcomes
+    names(model_obj[[decision]]$P) <- outcomes
+    
+    for (outcome in outcomes){
+        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
+        p_trans_value <- eval(parse(text = p_trans_formula)) 
+        # if (p_trans_value == 0){
+        #   p_trans_formula <- "0"
+        # }
+        # if (state == dest){
+        #   p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+        #   p_stay_value <- eval(parse(text = p_stay_formula)) 
+        #   if (p_stay_value > 0){ # can be added to the p_transformula
+        #     if (p_trans_value > 0){
+        #       p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+        #     } else { # if the transformula is empty, then just keep the stay formula
+        #       p_trans_formula <- p_stay_formula
+        #     }
+        #   }
+        #   }
+        
+        model_obj[[decision]]$P[outcome] <- eval(parse(text = p_trans_formula))
+        
+        #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
+        p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
+        model_obj[[decision]]$P_raw[outcome] <- p_trans_formula
+      } # end outcome
+    
+  } # end decision
+  
+  return(model_obj)
+}
+
+
+# if class is Markov
+print.gmod_markov <- function(gmod_obj){
   # here we will have an environment to parse the gmod_object
   model_obj <- list()
   add_decision_info <- function(){
@@ -74,9 +166,6 @@ print.gmod_class <- function(gmod_obj){
     model_obj$n_events <- length(model_obj$events)
     return(model_obj) 
   }
-
-
-  
   model_obj <- add_decision_info()
   model_obj <- add_markov_info()
   model_obj <- add_event_info()
@@ -120,11 +209,27 @@ add_markov_transition_matrix <- function(gmod_obj, model_obj){
   for (dest in states){
     for (state in states){
       p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+      p_trans_value <- eval(parse(text = p_trans_formula)) 
+      if (p_trans_value == 0){
+        p_trans_formula <- "0"
+      }
       if (state == dest){
-        p_trans_formula <- paste0(p_trans_formula, "+", get_prob_chain(gmod_obj, events_df, end_state = "curr_state"))
-      }    
-      model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
+        p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+        p_stay_value <- eval(parse(text = p_stay_formula)) 
+        if (p_stay_value > 0){ # can be added to the p_transformula
+          if (p_trans_value > 0){
+            p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+          } else { # if the transformula is empty, then just keep the stay formula
+            p_trans_formula <- p_stay_formula
+          }
+          
+        }
+      }
       model_obj[[decision]]$P[state, dest] <- eval(parse(text = p_trans_formula))
+      
+      p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
+      p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
+      model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
     }
   }
   }
@@ -188,7 +293,9 @@ states <- function(...){
 events <- function(...){
   list(type = "events", events = c(...))
 }
-
+outcomes <- function(...){
+  list(type = "outcomes", outcomes = c(...))
+}
 
 curr_state <- function(){
   return("curr_state")
@@ -326,12 +433,12 @@ parse_gmod <- function(gmod){
 # building transition prob matrix logic =======
 get_event_df <- function(gmod_obj){
   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
-  bind_rows(event_layers) %>% 
-    group_by(name) %>% 
-    mutate(with_probs = ifelse(is.infinite(with_probs), 
-                               1 - sum(with_probs[is.finite(with_probs)]), 
-                               with_probs)) %>% 
-    ungroup()
+  bind_rows(event_layers) #%>% 
+    #group_by(name) %>% 
+    #mutate(with_probs = ifelse(is.infinite(with_probs), 
+    #                           1 - sum(with_probs[is.finite(with_probs)]), 
+    #                           with_probs)) %>% 
+    #ungroup()
 }
 
 # identify the event chain
@@ -394,10 +501,10 @@ probs2string <- function(input_string) {
   #input_string <- deparse(substitute(probs))
   # Extract elements within c() using regex
   cleaned_string <- sub("^c\\((.*)\\)$", "\\1", input_string)
-  extracted_elements <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
+  y <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces
-  y <- trimws(unlist(strsplit(extracted_elements, ",")))
+  #y <- trimws(unlist(strsplit(extracted_elements, ",")))
   # remove complement in "inf"
   inf_index <- y == "Inf"
   if (any(inf_index)){

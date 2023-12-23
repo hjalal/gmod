@@ -49,8 +49,8 @@ df_pDie
 
 # You can continue adding more layers (+) to build the Markov model using this style.
 
-
-mygmod <- gmod() + 
+# Markov Model ==========
+mygmod <- gmod(model_type = "Markov") + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
@@ -62,7 +62,26 @@ mygmod <- gmod() +
   add_event(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
+            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
             with_probs = c(pProg(state, decision), Inf))
+
+
+# Decision Tree ========
+pDie <- function(decision){
+  if (decision == "Amputate") 0.99 else 0.8
+}
+pDie("Amputate")
+pDie("Antibiotics")
+
+mygmod <- gmod(type = "Decision") + 
+  decisions("Amputate", "Antibiotics") + 
+  outcomes("Dead", "Alive") +
+  events("DIE") + 
+  add_event(name = "DIE",  
+            if_event = c(T, F), 
+            goto = c("Dead", "Alive"), 
+            with_probs = c(pDie(decision), Inf)) 
+
 
 gmod_obj <- print(mygmod)
 #gmod_obj <- mygmod
