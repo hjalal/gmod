@@ -69,8 +69,9 @@ print.gmod_decision <- function(gmod_obj){
   }
   add_outcome_info <- function(){
     # retrieve states layer
-    outcomes_layer <- retrieve_layer_by_type(gmod_obj, type = "outcomes")
-    model_obj$outcomes <- outcomes_layer$outcomes
+    #outcomes_layer <- retrieve_layer_by_type(gmod_obj, type = "outcomes")
+    events_df <- get_event_df(gmod_obj)
+    model_obj$outcomes <- get_outcomes(events_df)
     model_obj$n_outcomes <- length(model_obj$outcomes)
     return(model_obj)
   }
@@ -82,8 +83,8 @@ print.gmod_decision <- function(gmod_obj){
     return(model_obj) 
   }
   model_obj <- add_decision_info()
-  model_obj <- add_outcome_info()
   model_obj <- add_event_info()
+  model_obj <- add_outcome_info()
   
   model_obj <- add_outcome_probs(gmod_obj, model_obj)
   #return(model_obj)
@@ -190,8 +191,6 @@ add_markov_transition_matrix <- function(gmod_obj, model_obj){
   n_states <- model_obj$n_states
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
-  
-
   vec_p_raw <- vec_p_stay <- rep("0", n_states)
   names(vec_p_raw) <- names(vec_p_stay) <- states
   for (state in states){
@@ -357,19 +356,19 @@ construct_prob_vec <- function(x, v_prob) {
 
 # markov functions
 
-# build transition prob matrix 
-convert_events_to_df <- function(gmod_obj){
-  event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
-  events_df <- bind_rows(event_layers)
-  
-}
-
-# build transition prob from the events df
-build_trans_prob_matrix <- function(gmod_obj){
-  events_df <- convert_events_to_df(gmod_obj)
-  states <- gmod_obj$states
-  
-}
+# # build transition prob matrix 
+# convert_events_to_df <- function(gmod_obj){
+#   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
+#   events_df <- bind_rows(event_layers)
+#   return(events_df)
+# }
+# 
+# # build transition prob from the events df
+# build_trans_prob_matrix <- function(gmod_obj){
+#   events_df <- convert_events_to_df(gmod_obj)
+#   states <- gmod_obj$states
+#   
+# }
 
 
 # function to make sure elements legnths are either 1 or n
@@ -451,7 +450,9 @@ get_first_event <- function(events_df){
   }
   return(first_event)
 }
-
+get_outcomes <- function(events_df){
+  unique(events_df$goto[!(events_df$goto %in% events_df$name)])
+}
 
 get_prob_chain <- function(gmod_obj, events_df, end_state){
   first_event <- get_first_event(events_df)
@@ -474,13 +475,16 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
         if (p == ""){
           p <- paste0("(",curr_row$with_probs,")")
         } else {
-          p <- paste0( p, "*", "(",curr_row$with_probs,")")
+          p <- paste0("(",curr_row$with_probs,")", "*", p)
         }
         # stop if curr_row$name == first_event
         if (curr_row$name == first_event) break
         # set prev_row to current row
         curr_row <- events_df[events_df$goto == curr_row$name, ]
-      }
+        if (nrow(curr_row)>1){
+          stop(paste("Multiple outcomes lead to the same event", curr_row))
+        }
+        }
       if (prob_chain == ""){
         prob_chain <- p
       } else {
@@ -493,6 +497,7 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
   # remove row
   return(prob_chain)
 }
+
 
 
 # Function to return the name of a function as a string
