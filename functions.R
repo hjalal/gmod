@@ -16,7 +16,7 @@
 
 
 # Define a simple S3 class for a plot
-gmod <- function(model_type) {
+gmod <- function(model_type, payoffs = NULL) {
   gmod_obj <- list()
   model_type <- tolower(model_type)
   if (model_type == "markov"){
@@ -268,21 +268,22 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   gmod_obj
 }
 
-add_event <- function(name, if_event, goto, with_probs){
+add_event <- function(name, if_event, goto, with_probs, payoffs = NULL){
   # events are the links that can either go to states or other events
-  input_string <- deparse(substitute(with_probs))
+  prob_string <- deparse(substitute(with_probs))
   list(type = "event", 
        name = name, 
        if_event = if_event, 
        goto = goto, 
-       with_probs = probs2string(input_string)
+       with_probs = probs2string(prob_string), 
+       payoffs = payoffs
   )
 }
 initial_probs <- function(states, probs){
   list(type = "initial_prob", states = states, probs = probs)
 }
-decisions <- function(...){
-  list(type = "decisions", decisions = c(...))
+decisions <- function(names, payoffs = NULL){
+  list(type = "decisions", decisions = names, payoffs = payoffs)
   # Define decisions based on each input
 }
 #print.gmod_class <- function(gmod_obj){
@@ -292,8 +293,8 @@ states <- function(...){
 events <- function(...){
   list(type = "events", events = c(...))
 }
-outcomes <- function(...){
-  list(type = "outcomes", outcomes = c(...))
+outcomes <- function(names, payoffs = NULL){
+  list(type = "outcomes", outcomes = names, payoffs = payoffs)
 }
 
 curr_state <- function(){
@@ -518,3 +519,4 @@ probs2string <- function(input_string) {
   }
   return(y)
 }
+

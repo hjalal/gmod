@@ -126,9 +126,17 @@ p_comp <- function(decision, prev_event){
   if (decision == "Biopsy" & any(prev_event== "OVE")) return(p_OVE_comp  )
 }
 p_comp(decision = "Biopsy", prev_event = "OVE")
-mygmod <- gmod(model_type = "Decision") + 
-  decisions("DoNotTreat", "Treat", "Biopsy") + 
-  #outcomes("HVE_comp", "OVE_comp", "HVE_no_comp", "OVE_no_comp", "Death") +
+c_HVE <- function(decision){
+  if (decision == "biopsy") c_tx else 0
+}
+
+mygmod <- gmod(model_type = "Decision", payoffs = c("cost", "effectiveness")) + 
+  decisions(names = c("DoNotTreat", "Treat", "Biopsy"), 
+            payoffs = list(cost = c(0, c_tx, c_biopsy), 
+                    effectiveness = c(0, 0, -q_loss_biopsy))) + 
+  outcomes(names = c("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp"), 
+           payoffs= list(cost = c(0, c_VE_comp, c_VE),
+                    effectiveness = c(q_death_biopsy, q_VE_comp, q_VE))) +
   events("DIE", "HVE","get_comp") + 
   add_event(name = "DIE",  
             if_event = c(T, F), 
@@ -140,12 +148,12 @@ mygmod <- gmod(model_type = "Decision") +
             with_probs = c(p_HVE, Inf)) +
   add_event(name = "get_HVE_comp", 
             if_event = c(T, F),
-            goto = c("comp", "no_comp"),
+            goto = c("HVE_comp", "no_HVE_comp"),
             with_prob = c(p_comp(decision, "HVE"), Inf))  +
   add_event(name = "get_OVE_comp", 
             if_event = c(T, F),
-            goto = c("comp", "no_comp"),
-            with_prob = c(p_comp(decision, 'OVE'), Inf)) 
+            goto = c("OVE_comp", "no_OVE_comp"),
+            with_prob = c(p_comp(decision, "OVE"), Inf)) 
 
 print(mygmod)
 #gmod_obj <- mygmod
