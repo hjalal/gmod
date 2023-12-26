@@ -16,7 +16,7 @@
 
 
 # Define a simple S3 class for a plot
-gmod <- function(model_type, payoffs = NULL) {
+gmod <- function(model_type) {
   gmod_obj <- list()
   model_type <- tolower(model_type)
   if (model_type == "markov"){
@@ -85,17 +85,31 @@ print.gmod_decision <- function(gmod_obj){
   model_obj <- add_decision_info()
   model_obj <- add_event_info()
   model_obj <- add_outcome_info()
-  
+  model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_outcome_probs(gmod_obj, model_obj)
   #return(model_obj)
   print(model_obj)
 }
+
+
+add_payoffs <- function(gmod_obj, model_obj){
+  payoffs_layer <- retrieve_layer_by_type(gmod_obj, type = "payoffs")
+  model_obj$payoffs <- payoffs_layer$payoffs
+  model_obj$payoff_names <- names(payoffs_layer$payoffs)
+  model_obj$n_payoffs <- length(model_obj$payoffs)
+  return(model_obj) 
+}
+
 
 add_outcome_probs <- function(gmod_obj, model_obj){
   outcomes <- model_obj$outcomes
   n_outcomes <- model_obj$n_outcomes
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
+  
+  # payoffs
+  payoffs <- model_obj$payoffs
+  payoff_names <- names(payoffs)
   
   vec_p_raw <- vec_p_stay <- rep("0", n_outcomes)
   names(vec_p_raw) <- names(vec_p_stay) <- outcomes
@@ -110,6 +124,12 @@ add_outcome_probs <- function(gmod_obj, model_obj){
     model_obj[[decision]]$P <- rep(0, n_outcomes)
     names(model_obj[[decision]]$P_raw) <- outcomes
     names(model_obj[[decision]]$P) <- outcomes
+    
+    # iterate through payoffs
+    for (payoff_name in payoff_names){
+      model_obj[[decision]]$payoffs[[payoff_name]] <- rep(0, n_outcomes)
+      names(model_obj[[decision]]$payoffs[[payoff_name]]) <- outcomes
+    }
     
     for (outcome in outcomes){
         p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
@@ -134,8 +154,17 @@ add_outcome_probs <- function(gmod_obj, model_obj){
         #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
         p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
         model_obj[[decision]]$P_raw[outcome] <- p_trans_formula
+        for (payoff_name in payoff_names){
+          model_obj[[decision]]$payoffs[[payoff_name]][outcome] <- eval(payoffs[[payoff_name]])
+        } # end payoffs 
       } # end outcome
-    
+    # EVs
+    for (payoff_name in payoff_names){
+      model_obj[[decision]]$ev[[payoff_name]] <- 
+        model_obj[[decision]]$payoffs[[payoff_name]] %*% 
+        model_obj[[decision]]$P
+        
+    } # end payoffs
   } # end decision
   
   return(model_obj)
@@ -268,22 +297,21 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   gmod_obj
 }
 
-add_event <- function(name, if_event, goto, with_probs, payoffs = NULL){
+add_event <- function(name, if_event, goto, with_probs){
   # events are the links that can either go to states or other events
-  prob_string <- deparse(substitute(with_probs))
+  input_string <- deparse(substitute(with_probs))
   list(type = "event", 
        name = name, 
        if_event = if_event, 
        goto = goto, 
-       with_probs = probs2string(prob_string), 
-       payoffs = payoffs
+       with_probs = probs2string(input_string)
   )
 }
 initial_probs <- function(states, probs){
   list(type = "initial_prob", states = states, probs = probs)
 }
-decisions <- function(names, payoffs = NULL){
-  list(type = "decisions", decisions = names, payoffs = payoffs)
+decisions <- function(...){
+  list(type = "decisions", decisions = c(...))
   # Define decisions based on each input
 }
 #print.gmod_class <- function(gmod_obj){
@@ -293,10 +321,17 @@ states <- function(...){
 events <- function(...){
   list(type = "events", events = c(...))
 }
-outcomes <- function(names, payoffs = NULL){
-  list(type = "outcomes", outcomes = names, payoffs = payoffs)
+outcomes <- function(...){
+  list(type = "outcomes", outcomes = c(...))
 }
-
+payoffs <- function(...){
+  input_string <- as.list(match.call())
+  # argument_list <- list(...)
+  # for (arg in argument_list){
+  #   arg_string <- deparse(substitute(arg))
+  # }
+  list(type = "payoffs", payoffs = input_string[-1])
+}
 curr_state <- function(){
   return("curr_state")
 }
@@ -519,4 +554,3 @@ probs2string <- function(input_string) {
   }
   return(y)
 }
-

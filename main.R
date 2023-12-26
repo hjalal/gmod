@@ -65,6 +65,11 @@ mygmod <- gmod(model_type = "Markov") +
             #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
             with_probs = c(pProg(state, decision), Inf))
 
+print(mygmod)
+
+
+
+
 
 # Decision Tree ========
 ## rock climber example ======= 
@@ -117,26 +122,37 @@ q_death_biopsy <- 0      # remaining QALYs for those who died during biopsy
 pDie <- function(decision){
   if (decision == "Biopsy") p_biopsy_death else 0
 }
-p_comp <- function(decision, prev_event){
-  if (decision == "DoNotTreat" & any(prev_event == "HVE") ) return(p_HVE_comp)
-  if (decision == "DoNotTreat" & any(prev_event== "OVE") )return(p_OVE_comp)
-  if (decision == "Treat" & any(prev_event== "HVE") ) return(p_HVE_comp_tx)
-  if (decision == "Treat" & any(prev_event== "OVE") ) return(p_OVE_comp_tx)
-  if (decision == "Biopsy" & any(prev_event== "HVE")) return(p_HVE_comp_tx)
-  if (decision == "Biopsy" & any(prev_event== "OVE")) return(p_OVE_comp  )
+p_comp <- function(decision, HVE){
+  if (decision == "DoNotTreat" & HVE ) return(p_HVE_comp)
+  if (decision == "DoNotTreat" & !HVE )return(p_OVE_comp)
+  if (decision == "Treat" & HVE ) return(p_HVE_comp_tx)
+  if (decision == "Treat" & !HVE ) return(p_OVE_comp_tx)
+  if (decision == "Biopsy" & HVE) return(p_HVE_comp_tx)
+  if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
 }
 p_comp(decision = "Biopsy", prev_event = "OVE")
 c_HVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
 
-mygmod <- gmod(model_type = "Decision", payoffs = c("cost", "effectiveness")) + 
-  decisions(names = c("DoNotTreat", "Treat", "Biopsy"), 
-            payoffs = list(cost = c(0, c_tx, c_biopsy), 
-                    effectiveness = c(0, 0, -q_loss_biopsy))) + 
-  outcomes(names = c("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp"), 
-           payoffs= list(cost = c(0, c_VE_comp, c_VE),
-                    effectiveness = c(q_death_biopsy, q_VE_comp, q_VE))) +
+cost <- function(decision, outcome){
+    c_biopsy*(decision=="Biopsy") + 
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) 
+}
+effectiveness <- function(decision, outcome){
+  -q_loss_biopsy*(decision=="Biopsy") + 
+    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+}
+cost("Biopsy", "HVE_comp")
+effectiveness("Biopsy", "Death")
+
+
+mygmod <- gmod(model_type = "Decision") + 
+  decisions("DoNotTreat", "Treat", "Biopsy") + 
+  outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   events("DIE", "HVE","get_comp") + 
   add_event(name = "DIE",  
             if_event = c(T, F), 
@@ -149,13 +165,19 @@ mygmod <- gmod(model_type = "Decision", payoffs = c("cost", "effectiveness")) +
   add_event(name = "get_HVE_comp", 
             if_event = c(T, F),
             goto = c("HVE_comp", "no_HVE_comp"),
-            with_prob = c(p_comp(decision, "HVE"), Inf))  +
+            with_prob = c(p_comp(decision, HVE = TRUE), Inf))  +
   add_event(name = "get_OVE_comp", 
             if_event = c(T, F),
             goto = c("OVE_comp", "no_OVE_comp"),
-            with_prob = c(p_comp(decision, "OVE"), Inf)) 
+            with_prob = c(p_comp(decision, HVE = FALSE), Inf)) + 
+  payoffs(cost = cost(decision, outcome), 
+          effectiveness = effectiveness(decision, outcome))
 
 print(mygmod)
+
+# Doubilet example? ==========
+
+
 #gmod_obj <- mygmod
 
 retrieve_obj_type(gmod_obj, "Dead")
