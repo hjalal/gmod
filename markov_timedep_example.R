@@ -11,21 +11,40 @@ pMortMod	<- 0.050
 pMortSev	<- 0.200
 
 
+
 # without arguments because it gets determined by the local environment
 rrProg <- function(decision){
   #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
-  df_rrProg$value[df_rrProg$decision == decision]
+  switch(decision, "NoTrt" = 1,
+         "TrtA" = rrProgTrtA,
+         "TrtB" = rrProgTrtB)
+  #df_rrProg$value[df_rrProg$decision == decision]
 }
 
 pDie <- function(state){
   #state <- get("state", envir = parent.frame())  # Get x from the calling environment
-  df_pDie$value[df_pDie$state == state]
+  switch(state, "Moderate" = pMortMod,
+         "Severe" = pMortSev, 
+         "Dead" = 1)
+  #df_pDie$value[df_pDie$state == state]
 }
 
 pProg <- function(state, decision){
   #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
   #state <- get("state", envir = parent.frame())  # Get x from the calling environment
   (state=="Moderate")*rrProg(decision)*pProgNoTrt
+}
+
+cost <- function(state){
+  switch(state, "Moderate" = 3000,
+         "Severe" = 6000,
+         "Dead" = 0)
+}
+
+effectiveness <- function(state){
+  switch(state, "Moderate" = 0.8,
+         "Severe" = 0.6,
+         "Dead" = 0)
 }
 
 
@@ -35,13 +54,13 @@ state_names <- c("Moderate", "Severe", "Dead")
 decision_names <- c("NoTrt", "TrtA", "TrtB")
 event_names <- c("Progress", "Die") # verbs
 
-df_rrProg <- data.frame(decision = c(decision_names), 
-                        value = c(1, rrProgTrtA, rrProgTrtB))
-df_rrProg
-
-df_pDie <- data.frame(state = state_names, 
-                      value = c(pMortMod, pMortSev, 1))
-df_pDie
+# df_rrProg <- data.frame(decision = c(decision_names), 
+#                         value = c(1, rrProgTrtA, rrProgTrtB))
+# df_rrProg
+# 
+# df_pDie <- data.frame(state = state_names, 
+#                       value = c(pMortMod, pMortSev, 1))
+# df_pDie
 # simplest case 
 # remainder prob, either Inf or prob_left()
 # curr_state, either do curr_state() or "curr_state"
@@ -49,10 +68,9 @@ df_pDie
 
 # You can continue adding more layers (+) to build the Markov model using this style.
 
+
 # Markov Model ==========
-
-
-mygmod <- gmod(model_type = "Markov", n_cycles = 40) + 
+mygmod <- gmod(model_type = "Markov", n_cycles = 2) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
@@ -60,15 +78,17 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 40) +
   add_event(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state), Inf)) +
+            with_probs = c(pDie(state, cycle, cycle_in_state('Severe')), Inf)) +
   add_event(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
             #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision), Inf))
-
+            with_probs = c(pProg(state, decision), Inf)) + 
+  payoffs(cost = cost(state, cycle, cycle_in_state('Moderate')), 
+          effectiveness = effectiveness(state))
+tunnel_states(mygmod)
+is_cycle_dep(mygmod)
 model_obj <- print(mygmod)
-
 
 
 # Markov + age = f(n_cycles) ==========
