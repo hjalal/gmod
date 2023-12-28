@@ -20,9 +20,9 @@ gmod <- function(model_type, n_cycles = 50) {
   gmod_obj <- list()
   model_type <- tolower(model_type)
   if (model_type == "markov"){
-  class(gmod_obj) <- c("gmod_markov", "gmod_class")
-  # by default is time independent - becomes time dep if there is n_cycles in one of the events
-  gmod_obj$n_cycles <- n_cycles
+    class(gmod_obj) <- c("gmod_markov", "gmod_class")
+    # by default is time independent - becomes time dep if there is n_cycles in one of the events
+    gmod_obj$n_cycles <- n_cycles
   } else if (model_type == "decision"){
     class(gmod_obj) <- c("gmod_decision", "gmod_class")
   } else {
@@ -47,6 +47,16 @@ tunnel_states <- function(gmod_obj){
   tunnel_states <- unique(unlist(second_elements))
   tunnel_states <- tunnel_states[!is.na(tunnel_states)]
   return(tunnel_states)
+}
+
+# gets the state and tunnel out of a tunnel state
+tunnel2state <- function(tunnel_state){
+  state_comp <- strsplit(tunnel_state, "_tnl")[[1]]
+  if (length(state_comp) == 1){
+    state_comp[2] <- 0
+  }
+  #names(state_comp) <- c("state", "tunnel")
+  return(state_comp)
 }
 
 event_dependencies <- function(gmod_obj){
@@ -152,38 +162,38 @@ add_outcome_probs <- function(gmod_obj, model_obj){
     }
     
     for (outcome in outcomes){
-        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
-        p_trans_value <- eval(parse(text = p_trans_formula)) 
-        # if (p_trans_value == 0){
-        #   p_trans_formula <- "0"
-        # }
-        # if (state == dest){
-        #   p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-        #   p_stay_value <- eval(parse(text = p_stay_formula)) 
-        #   if (p_stay_value > 0){ # can be added to the p_transformula
-        #     if (p_trans_value > 0){
-        #       p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
-        #     } else { # if the transformula is empty, then just keep the stay formula
-        #       p_trans_formula <- p_stay_formula
-        #     }
-        #   }
-        #   }
-        
-        model_obj[[decision]]$P[outcome] <- eval(parse(text = p_trans_formula))
-        
-        #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
-        p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
-        model_obj[[decision]]$P_raw[outcome] <- p_trans_formula
-        for (payoff_name in payoff_names){
-          model_obj[[decision]]$payoffs[[payoff_name]][outcome] <- eval(payoffs[[payoff_name]])
-        } # end payoffs 
-      } # end outcome
+      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
+      p_trans_value <- eval(parse(text = p_trans_formula)) 
+      # if (p_trans_value == 0){
+      #   p_trans_formula <- "0"
+      # }
+      # if (state == dest){
+      #   p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+      #   p_stay_value <- eval(parse(text = p_stay_formula)) 
+      #   if (p_stay_value > 0){ # can be added to the p_transformula
+      #     if (p_trans_value > 0){
+      #       p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+      #     } else { # if the transformula is empty, then just keep the stay formula
+      #       p_trans_formula <- p_stay_formula
+      #     }
+      #   }
+      #   }
+      
+      model_obj[[decision]]$P[outcome] <- eval(parse(text = p_trans_formula))
+      
+      #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
+      p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
+      model_obj[[decision]]$P_raw[outcome] <- p_trans_formula
+      for (payoff_name in payoff_names){
+        model_obj[[decision]]$payoffs[[payoff_name]][outcome] <- eval(payoffs[[payoff_name]])
+      } # end payoffs 
+    } # end outcome
     # EVs
     for (payoff_name in payoff_names){
       model_obj[[decision]]$ev[[payoff_name]] <- 
         model_obj[[decision]]$payoffs[[payoff_name]] %*% 
         model_obj[[decision]]$P
-        
+      
     } # end payoffs
   } # end decision
   
@@ -198,7 +208,7 @@ print.gmod_markov <- function(gmod_obj){
   model_obj <- list()
   model_obj$is_cycle_dep <- is_cycle_dep(gmod_obj)
   model_obj$tunnel_states <- tunnel_states(gmod_obj)
-
+  
   model_obj <- add_decision_info(gmod_obj, model_obj)
   model_obj <- add_markov_info(gmod_obj, model_obj)
   model_obj <- add_event_info(gmod_obj, model_obj)
@@ -225,17 +235,17 @@ add_markov_info <- function(gmod_obj, model_obj){
   tunnel_states <- model_obj$tunnel_states
   if (length(tunnel_states) > 0){ #there are tunnel states
     #for each tunnel state expand states vector
-      is_tunnel <- states %in% tunnel_states # F,T,F since severe is the tunnel state 
-      # now we need to expand the state space to incorporate the tunnels and all other vectors
-      rep_states <- is_tunnel * (n_cycles - 1) + 1 # {1, 40, 1} a trick to get number of replication for each state
-      states_expanded <- rep(states, rep_states)
-      for (tunnel_state in tunnel_states){
-        states_expanded[states_expanded == tunnel_state] <- paste0(tunnel_state, "_t", 1:n_cycles) # we need to replace severe with Severe Yr1, Severe Yr2, ... etc
-      }
+    is_tunnel <- states %in% tunnel_states # F,T,F since severe is the tunnel state 
+    # now we need to expand the state space to incorporate the tunnels and all other vectors
+    rep_states <- is_tunnel * (n_cycles - 1) + 1 # {1, 40, 1} a trick to get number of replication for each state
+    states_expanded <- rep(states, rep_states)
+    for (tunnel_state in tunnel_states){
+      states_expanded[states_expanded == tunnel_state] <- paste0(tunnel_state, "_tnl", 1:n_cycles) # we need to replace severe with Severe Yr1, Severe Yr2, ... etc
+    }
   }
   model_obj$states <- states
   model_obj$n_states <- length(states)
-  model_obj$expanded_states <- states_expanded
+  model_obj$states_expanded <- states_expanded
   model_obj$n_expanded_states <- length(states_expanded)    
   return(model_obj)
 }
@@ -268,7 +278,13 @@ add_markov_initial_probs <- function(gmod_obj, model_obj){
 
 add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   states <- model_obj$states
-  n_states <- model_obj$n_states
+  #n_states <- model_obj$n_states
+  states_expanded <- model_obj$states_expanded
+  n_states_expanded <- length(states_expanded)
+  tunnel_states <- model_obj$tunnel_states
+  n_cycles <- gmod_obj$n_cycles
+  # get expanded states 
+  
   # add "curr_state" ones as well here to form P_raw as a matrix
   for (decision in model_obj$decisions){
     if (model_obj$is_cycle_dep){ # array
@@ -276,28 +292,45 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
       cycle <- 1:n_cycles
       #cycle <- cycle_range # try vector format!
       cycles <- paste0("cycle", cycle)
-      model_obj$P[[decision]] <- array("0", dim = c(n_states, n_states, n_cycles), dimnames = list(states, states, cycles))
+      # change n_states to n_states_expanded
+      model_obj$P[[decision]] <- array("0", dim = c(n_states_expanded, n_states_expanded, n_cycles), 
+                                       dimnames = list(states_expanded, states_expanded, cycles))
     } else { # matrix
-      model_obj$P[[decision]] <- matrix("0", nrow = n_states, ncol = n_states, dimnames = list(states, states))
+      model_obj$P[[decision]] <- matrix("0", nrow = n_states_expanded, ncol = n_states_expanded, 
+                                        dimnames = list(states_expanded, states_expanded))
     }
-  for (dest in states){
-    for (state in states){
-      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
-      if (state == dest){
-        p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-        p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+    
+    for (dest_expanded in states_expanded){
+      dest_comp <- tunnel2state(dest_expanded)
+      dest <- dest_comp[1]
+      dest_idx <- as.integer(dest_comp[2])
+      for (state_expanded in states_expanded){
+        state_comp <- tunnel2state(state_expanded)
+        state <- state_comp[1]
+        state_idx <- as.integer(state_comp[2])
+        
+        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+        if (state == dest){
+          p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+          p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
         }
-      #p_trans_formula <- gsub("\\bstate\\b", paste0("\"", state, "\""), p_trans_formula)
-      #p_trans_formula <- gsub("\\bdecision\\b", paste0("\"", decision, "\""), p_trans_formula)
-      p_trans_formula <- gsub("\\bstate\\b", paste0("'", state, "'"), p_trans_formula)
-      p_trans_formula <- gsub("\\bdecision\\b", paste0("'", decision, "'"), p_trans_formula)
-      if (model_obj$is_cycle_dep){ # array
-        p_trans_formula <- sapply(cycle, function(x) gsub("\\bcycle\\b", paste0("cycle=",x), p_trans_formula))
-        model_obj$P[[decision]][state, dest, ] <- p_trans_formula
-      } else {
-        model_obj$P[[decision]][state, dest] <- p_trans_formula
-      }
-    } # end origin state
+        p_trans_formula <- gsub("\\bstate\\b", paste0("'", state, "'"), p_trans_formula)
+        p_trans_formula <- gsub("\\bdecision\\b", paste0("'", decision, "'"), p_trans_formula)
+        
+        # write error trap if state within cycle_in_state doesn't match state
+        p_trans_formula <- gsub("cycle_in_state\\([^)]+\\)", paste0("tnl=",state_idx), p_trans_formula)
+        
+        if (!(state %in% tunnel_states & state == dest & dest_idx != state_idx+1)){ #otherwise keep at "0"
+          
+          if (model_obj$is_cycle_dep){ # array
+            p_trans_formula <- sapply(cycle, function(x) gsub("\\bcycle\\b", paste0("cycle=",x), p_trans_formula))
+            model_obj$P[[decision]][state_expanded, dest_expanded, ] <- p_trans_formula
+          } else {
+            model_obj$P[[decision]][state_expanded, dest_expanded] <- p_trans_formula
+          }
+        }
+        
+      } # end origin state
     } # end dest state 
   } # end decision
   return(model_obj)
@@ -387,7 +420,7 @@ add_markov_transition_array <- function(gmod_obj, model_obj, events_df){
           }
         }
         #for (cycle in cycle_range){
-          model_obj[[decision]]$P[state, dest, ] <- eval(parse(text = p_trans_formula))
+        model_obj[[decision]]$P[state, dest, ] <- eval(parse(text = p_trans_formula))
         #}
         p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
         p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
@@ -499,7 +532,7 @@ construct_prob_vec <- function(x, v_prob) {
     print(paste(x, v_prob))
     stop("Lengths of 'x' and 'v_prob' vectors should match.")
   }
-
+  
   # Create a named vector of probabilities
   prob_vector <- setNames(v_prob, x)
   return(prob_vector)
@@ -611,11 +644,11 @@ parse_gmod <- function(gmod){
 get_event_df <- function(gmod_obj){
   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
   bind_rows(event_layers) #%>% 
-    #group_by(name) %>% 
-    #mutate(with_probs = ifelse(is.infinite(with_probs), 
-    #                           1 - sum(with_probs[is.finite(with_probs)]), 
-    #                           with_probs)) %>% 
-    #ungroup()
+  #group_by(name) %>% 
+  #mutate(with_probs = ifelse(is.infinite(with_probs), 
+  #                           1 - sum(with_probs[is.finite(with_probs)]), 
+  #                           with_probs)) %>% 
+  #ungroup()
 }
 
 # identify the event chain
@@ -662,7 +695,7 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
         if (nrow(curr_row)>1){
           stop(paste("Multiple outcomes lead to the same event", curr_row))
         }
-        }
+      }
       if (prob_chain == ""){
         prob_chain <- p
       } else {
@@ -683,7 +716,8 @@ probs2string <- function(input_string) {
   # https://stackoverflow.com/questions/35347537/using-strsplit-in-r-ignoring-anything-in-parentheses
   #input_string <- deparse(substitute(probs))
   # Extract elements within c() using regex
-  cleaned_string <- sub("^c\\((.*)\\)$", "\\1", input_string)
+  wo_white_spaces <- input_string #gsub("\\s+", "", input_string)
+  cleaned_string <- sub("^c\\((.*)\\)$", "\\1", wo_white_spaces)
   y <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces

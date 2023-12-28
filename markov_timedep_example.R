@@ -101,7 +101,7 @@ rrProg <- function(decision){
   df_rrProg$value[df_rrProg$decision == decision]
 }
 
-pDie <- function(state){
+pDie <- function(state, cycle_in_state){
   #state <- get("state", envir = parent.frame())  # Get x from the calling environment
   df_pDie$value[df_pDie$state == state]
 }
@@ -120,7 +120,7 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   add_event(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state), Inf)) +
+            with_probs = c(pDie(state, cycle_in_state('Severe')), Inf)) +
   add_event(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
@@ -129,3 +129,38 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
 
 model_obj <- print(mygmod)
 
+
+# Time and tunnel dependencies ========
+# without arguments because it gets determined by the local environment
+rrProg <- function(decision){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  df_rrProg$value[df_rrProg$decision == decision]
+}
+
+pDie <- function(state, cycle){
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  df_pDie$value[df_pDie$state == state]
+}
+
+pProg <- function(state, decision, cycle_in_state){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  (state=="Moderate")*rrProg(decision)*pProgNoTrt
+}
+
+mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
+  decisions("NoTrt", "TrtA", "TrtB") + 
+  states("Moderate", "Severe", "Dead") + 
+  events("DIE", "PROGRESS") +
+  initial_probs(states = "Moderate", probs = 1) +  
+  add_event(name = "DIE",  
+            if_event = c(T, F), 
+            goto = c("Dead", "PROGRESS"), 
+            with_probs = c(pDie(state, cycle), Inf)) +
+  add_event(name = "PROGRESS", 
+            if_event = c(T, F), 
+            goto = c("Severe", curr_state()), 
+            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
+            with_probs = c(pProg(state, decision, cycle_in_state('Moderate')), Inf))
+
+model_obj <- print(mygmod)
