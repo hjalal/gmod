@@ -1,7 +1,7 @@
 # sandbox 
 
 # to do: 
-# - define keywards (stay, all, age, n_cycles_in_state, cycle, )
+# - define keywards (stay, all, age, cycle_in_state, cycle, )
 # - functions like start_with(), all(), all_states(), all_decisions() ... 
 # - checks of non-overlap between decisions/states/events 
 # - keywards vs. functions (e.g., all(), starts_with(), ... ) 
@@ -16,17 +16,37 @@
 
 
 # Define a simple S3 class for a plot
-gmod <- function(model_type) {
+gmod <- function(model_type, n_cycles = 50) {
   gmod_obj <- list()
   model_type <- tolower(model_type)
   if (model_type == "markov"){
   class(gmod_obj) <- c("gmod_markov", "gmod_class")
+  # by default is time independent - becomes time dep if there is n_cycles in one of the events
+  gmod_obj$n_cycles <- n_cycles
   } else if (model_type == "decision"){
     class(gmod_obj) <- c("gmod_decision", "gmod_class")
   } else {
     stop(paste("model_type can either be Markov or Decision. Model type = ", model_type, "is not supported."))
   }
   gmod_obj
+}
+
+is_cycle_dep <- function(gmod_obj){
+  #gmod_obj$layers
+  events_df <- get_event_df(gmod_obj)
+  any(grepl("\\bcycle\\b", events_df$with_probs)) 
+}
+
+tunnel_states <- function(gmod_obj){
+  #gmod_obj$layers
+  events_df <- get_event_df(gmod_obj)
+  # capture all tunnel states 
+  matches <- str_match_all(events_df$with_probs, 'cycle_in_state\\("(.*?)"\\)')
+  second_elements <- lapply(matches, function(x) x[2])
+  # Convert the list to a vector if needed
+  tunnel_states <- unique(unlist(second_elements))
+  tunnel_states <- tunnel_states[!is.na(tunnel_states)]
+  return(tunnel_states)
 }
 
 event_dependencies <- function(gmod_obj){
@@ -174,58 +194,129 @@ add_outcome_probs <- function(gmod_obj, model_obj){
 # if class is Markov
 print.gmod_markov <- function(gmod_obj){
   # here we will have an environment to parse the gmod_object
+  n_cycles <- gmod_obj$n_cycles
   model_obj <- list()
-  add_decision_info <- function(){
-    # retrieve states layer
-    decision_layer <- retrieve_layer_by_type(gmod_obj, type = "decisions")
-    model_obj$decisions <- decision_layer$decisions
-    model_obj$n_decisions <- length(model_obj$decisions)
-    return(model_obj)
-  }
-  add_markov_info <- function(){
-    # retrieve states layer
-    states_layer <- retrieve_layer_by_type(gmod_obj, type = "states")
-    model_obj$states <- states_layer$states
-    model_obj$n_states <- length(model_obj$states)
-    return(model_obj)
-  }
-  add_event_info <- function(){
-    # retrieve states layer
-    event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
-    model_obj$events <- event_layer$events
-    model_obj$n_events <- length(model_obj$events)
-    return(model_obj) 
-  }
-  model_obj <- add_decision_info()
-  model_obj <- add_markov_info()
-  model_obj <- add_event_info()
+  model_obj$is_cycle_dep <- is_cycle_dep(gmod_obj)
+  model_obj$tunnel_states <- tunnel_states(gmod_obj)
+
+  model_obj <- add_decision_info(gmod_obj, model_obj)
+  model_obj <- add_markov_info(gmod_obj, model_obj)
+  model_obj <- add_event_info(gmod_obj, model_obj)
   model_obj <- add_markov_initial_probs(gmod_obj, model_obj)
-  model_obj <- add_markov_transition_matrix(gmod_obj, model_obj)
+  events_df <- get_event_df(gmod_obj)
+  model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
   #return(model_obj)
   print(model_obj)
 }
 
+add_decision_info <- function(gmod_obj, model_obj){
+  # retrieve states layer
+  decision_layer <- retrieve_layer_by_type(gmod_obj, type = "decisions")
+  model_obj$decisions <- decision_layer$decisions
+  model_obj$n_decisions <- length(model_obj$decisions)
+  return(model_obj)
+}
+add_markov_info <- function(gmod_obj, model_obj){
+  # retrieve states layer
+  states_layer <- retrieve_layer_by_type(gmod_obj, type = "states")
+  states <- states_layer$states# no tunnel states
+  n_cycles <- gmod_obj$n_cycles
+  
+  tunnel_states <- model_obj$tunnel_states
+  if (length(tunnel_states) > 0){ #there are tunnel states
+    #for each tunnel state expand states vector
+      is_tunnel <- states %in% tunnel_states # F,T,F since severe is the tunnel state 
+      # now we need to expand the state space to incorporate the tunnels and all other vectors
+      rep_states <- is_tunnel * (n_cycles - 1) + 1 # {1, 40, 1} a trick to get number of replication for each state
+      states_expanded <- rep(states, rep_states)
+      for (tunnel_state in tunnel_states){
+        states_expanded[states_expanded == tunnel_state] <- paste0(tunnel_state, "_t", 1:n_cycles) # we need to replace severe with Severe Yr1, Severe Yr2, ... etc
+      }
+  }
+  model_obj$states <- states
+  model_obj$n_states <- length(states)
+  model_obj$expanded_states <- states_expanded
+  model_obj$n_expanded_states <- length(states_expanded)    
+  return(model_obj)
+}
+add_event_info <- function(gmod_obj, model_obj){
+  # retrieve states layer
+  event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
+  model_obj$events <- event_layer$events
+  model_obj$n_events <- length(model_obj$events)
+  return(model_obj) 
+}
+
 add_markov_initial_probs <- function(gmod_obj, model_obj){
+  # all prob are 0, just replace the ones provided with their values
   markov_p0 <- retrieve_layer_by_type(gmod_obj, type = "initial_prob")
-  p0 <- markov_p0$probs
-  names(p0) <- markov_p0$states
+  init_p0 <- markov_p0$probs
+  init_states <- markov_p0$states
+  p0 <- rep(0, model_obj$n_states)  # empty vector
+  names(p0) <- model_obj$states
   for (d in model_obj$decisions){
-    model_obj[[d]]$p0 <- p0
+    model_obj$p0[[d]] <- p0
+    for (i in 1:length(init_p0)){
+      model_obj$p0[[d]][init_states[i]] <- init_p0[i]
+    }
+    model_obj$p0[[d]] <- check_prob_vector(model_obj$p0[[d]])
   }
   return(model_obj)
 }
 
-add_markov_transition_matrix <- function(gmod_obj, model_obj){
+
+
+add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   states <- model_obj$states
   n_states <- model_obj$n_states
-  events_df <- get_event_df(gmod_obj)
-  first_event <- get_first_event(events_df)
-  vec_p_raw <- vec_p_stay <- rep("0", n_states)
-  names(vec_p_raw) <- names(vec_p_stay) <- states
-  for (state in states){
-    vec_p_raw[state] <- get_prob_chain(gmod_obj, events_df, end_state = state)
-    vec_p_stay[state] <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-  }
+  # add "curr_state" ones as well here to form P_raw as a matrix
+  for (decision in model_obj$decisions){
+    if (model_obj$is_cycle_dep){ # array
+      n_cycles <- gmod_obj$n_cycles
+      cycle <- 1:n_cycles
+      #cycle <- cycle_range # try vector format!
+      cycles <- paste0("cycle", cycle)
+      model_obj$P[[decision]] <- array("0", dim = c(n_states, n_states, n_cycles), dimnames = list(states, states, cycles))
+    } else { # matrix
+      model_obj$P[[decision]] <- matrix("0", nrow = n_states, ncol = n_states, dimnames = list(states, states))
+    }
+  for (dest in states){
+    for (state in states){
+      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+      if (state == dest){
+        p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+        p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+        }
+      #p_trans_formula <- gsub("\\bstate\\b", paste0("\"", state, "\""), p_trans_formula)
+      #p_trans_formula <- gsub("\\bdecision\\b", paste0("\"", decision, "\""), p_trans_formula)
+      p_trans_formula <- gsub("\\bstate\\b", paste0("'", state, "'"), p_trans_formula)
+      p_trans_formula <- gsub("\\bdecision\\b", paste0("'", decision, "'"), p_trans_formula)
+      if (model_obj$is_cycle_dep){ # array
+        p_trans_formula <- sapply(cycle, function(x) gsub("\\bcycle\\b", paste0("cycle=",x), p_trans_formula))
+        model_obj$P[[decision]][state, dest, ] <- p_trans_formula
+      } else {
+        model_obj$P[[decision]][state, dest] <- p_trans_formula
+      }
+    } # end origin state
+    } # end dest state 
+  } # end decision
+  return(model_obj)
+}
+
+
+evaluate_model <- function(model_obj){
+  
+  eval(parse(text = model_obj$P$TrtA[1,3,5])) 
+  states <- model_obj$states
+  n_states <- model_obj$n_states
+  #events_df <- get_event_df(gmod_obj)
+  #first_event <- get_first_event(events_df)
+  # vec_p_raw <- vec_p_stay <- rep("0", n_states)
+  # names(vec_p_raw) <- names(vec_p_stay) <- states
+  # for (state in states){
+  #   vec_p_raw[state] <- get_prob_chain(gmod_obj, events_df, end_state = state)
+  #   vec_p_stay[state] <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+  # }
   
   # add "curr_state" ones as well here to form P_raw as a matrix
   for (decision in model_obj$decisions){
@@ -234,36 +325,83 @@ add_markov_transition_matrix <- function(gmod_obj, model_obj){
     rownames(model_obj[[decision]]$P_raw) <- colnames(model_obj[[decision]]$P_raw) <- states
     rownames(model_obj[[decision]]$P) <- colnames(model_obj[[decision]]$P) <- states
     
-  for (dest in states){
-    for (state in states){
-      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
-      p_trans_value <- eval(parse(text = p_trans_formula)) 
-      if (p_trans_value == 0){
-        p_trans_formula <- "0"
-      }
-      if (state == dest){
-        p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-        p_stay_value <- eval(parse(text = p_stay_formula)) 
-        if (p_stay_value > 0){ # can be added to the p_transformula
-          if (p_trans_value > 0){
-            p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
-          } else { # if the transformula is empty, then just keep the stay formula
-            p_trans_formula <- p_stay_formula
-          }
-          
+    for (dest in states){
+      for (state in states){
+        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+        p_trans_value <- eval(parse(text = p_trans_formula)) 
+        if (p_trans_value == 0){
+          p_trans_formula <- "0"
         }
+        if (state == dest){
+          p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+          p_stay_value <- eval(parse(text = p_stay_formula)) 
+          if (p_stay_value > 0){ # can be added to the p_transformula
+            if (p_trans_value > 0){
+              p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+            } else { # if the transformula is empty, then just keep the stay formula
+              p_trans_formula <- p_stay_formula
+            }
+          }
+        }
+        model_obj[[decision]]$P[state, dest] <- eval(parse(text = p_trans_formula))
+        
+        p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
+        p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
+        model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
       }
-      model_obj[[decision]]$P[state, dest] <- eval(parse(text = p_trans_formula))
-      
-      p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
-      p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
-      model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
     }
   }
-  }
-
   return(model_obj)
 }
+
+
+
+# transition array
+add_markov_transition_array <- function(gmod_obj, model_obj, events_df){
+  states <- model_obj$states
+  n_states <- model_obj$n_states
+  events_df <- get_event_df(gmod_obj)
+  for (decision in model_obj$decisions){
+    model_obj[[decision]]$P_raw <- matrix("0", nrow = n_states, ncol = n_states)
+    model_obj[[decision]]$P <- array(0, dim = c(n_states, n_states, n_cycles), 
+                                     dimnames = list(states, states, cycles))
+    rownames(model_obj[[decision]]$P_raw) <- colnames(model_obj[[decision]]$P_raw) <- states
+    #rownames(model_obj[[decision]]$P) <- colnames(model_obj[[decision]]$P) <- states
+    
+    for (dest in states){
+      for (state in states){
+        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+        p_trans_value <- eval(parse(text = p_trans_formula)) 
+        if (any(p_trans_value == 0)){
+          p_trans_formula <- "0"
+        }
+        if (state == dest){
+          p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
+          p_stay_value <- eval(parse(text = p_stay_formula)) 
+          if (any(p_stay_value > 0)){ # can be added to the p_transformula
+            if (any(p_trans_value > 0)){
+              p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
+            } else { # if the transformula is empty, then just keep the stay formula
+              p_trans_formula <- p_stay_formula
+            }
+          }
+        }
+        #for (cycle in cycle_range){
+          model_obj[[decision]]$P[state, dest, ] <- eval(parse(text = p_trans_formula))
+        #}
+        p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
+        p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
+        p_trans_formula <- gsub("\\bcycle\\b", paste0(1,":",n_cycles), p_trans_formula)
+        model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
+      }
+    }
+  }
+  return(model_obj)
+}
+
+
+
+
 
 retrieve_layer_by_type <- function(gmod_obj, type){
   # Use lapply to filter the list based on the condition
@@ -300,6 +438,7 @@ retrieve_layer_by_type <- function(gmod_obj, type){
 add_event <- function(name, if_event, goto, with_probs){
   # events are the links that can either go to states or other events
   input_string <- deparse(substitute(with_probs))
+  #input_string <- as.list(match.call())$with_probs
   list(type = "event", 
        name = name, 
        if_event = if_event, 
@@ -354,10 +493,22 @@ prob_left <- function() {
 
 construct_prob_vec <- function(x, v_prob) {
   # Check if prob_left() function is used in v_prob
+  v_prob <- check_prob_vector(v_prob) 
+  # Check if the length of the vectors matches
+  if (length(x) != length(v_prob)) {
+    print(paste(x, v_prob))
+    stop("Lengths of 'x' and 'v_prob' vectors should match.")
+  }
+
+  # Create a named vector of probabilities
+  prob_vector <- setNames(v_prob, x)
+  return(prob_vector)
+}
+
+check_prob_vector <- function(v_prob){
   if (Inf %in% v_prob) {
     if (length(v_prob[is.infinite(v_prob)])>1){
       stop("Only one probability can be Inf as a complementary probability = 1-sum(other probs).")
-      
     }
     # Calculate the complement probability
     complement_index <- which(v_prob == Inf)
@@ -367,25 +518,16 @@ construct_prob_vec <- function(x, v_prob) {
   }
   
   # Check if the length of the vectors matches
-  if (length(x) != length(v_prob)) {
-    print(paste(x, v_prob))
-    stop("Lengths of 'x' and 'v_prob' vectors should match.")
-  }
-  # Check if the length of the vectors matches
   if (sum(v_prob) != 1) {
-    print(paste(x, v_prob))
+    print(paste(v_prob))
     stop("Probabilities must add to 1. Inf can be used as complement for one of the probabilities.")
   }
   if (any(v_prob > 1) | any(v_prob < 0) ){
-    print(paste(x, v_prob))
+    print(paste(v_prob))
     stop("Probabilities must be between 0 and 1. Inf can be used as complement for one of the probabilities.")
   }
-  # Create a named vector of probabilities
-  prob_vector <- setNames(v_prob, x)
-  return(prob_vector)
+  return(v_prob)
 }
-
-
 
 
 #}
@@ -498,7 +640,7 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
   n_row <- nrow(sel_events_df)
   prob_chain <- ""
   # for each row, create chain
-  if (n_row > 0){ # some states leads to the current state
+  if (n_row > 0){ # at least one states leads to the current state
     for (i in 1:n_row){
       # from each then go to "name" and 
       # concatenate until reaching first_event 
