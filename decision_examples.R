@@ -10,7 +10,7 @@ mygmod <- gmod(model_type = "Decision") +
   decisions("Amputate", "Antibiotics") + 
   outcomes("Dead", "Alive") +
   events("DIE") + 
-  add_event(name = "DIE",  
+  event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "Alive"), 
             with_probs = c(pDie(decision), Inf)) 
@@ -81,19 +81,19 @@ mygmod <- gmod(model_type = "Decision") +
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   events("DIE", "HVE","get_comp") + 
-  add_event(name = "DIE",  
+  event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Death", "HVE"), 
             with_probs = c(pDie(decision), Inf)) + 
-  add_event(name = "HVE",  
+  event_mapping(name = "HVE",  
             if_event = c(T, F), 
             goto = c("get_HVE_comp", "get_OVE_comp"), 
             with_probs = c(p_HVE, Inf)) +
-  add_event(name = "get_HVE_comp", 
+  event_mapping(name = "get_HVE_comp", 
             if_event = c(T, F),
             goto = c("HVE_comp", "no_HVE_comp"),
             with_prob = c(p_comp(decision, HVE = TRUE), Inf))  +
-  add_event(name = "get_OVE_comp", 
+  event_mapping(name = "get_OVE_comp", 
             if_event = c(T, F),
             goto = c("OVE_comp", "no_OVE_comp"),
             with_prob = c(p_comp(decision, HVE = FALSE), Inf)) + 

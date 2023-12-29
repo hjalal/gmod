@@ -55,11 +55,11 @@ mygmod <- gmod(model_type = "Markov") +
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
   initial_probs(states = state_names, probs = c(1,0,0)) +  
-  add_event(name = "DIE",  
+  event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
             with_probs = c(pDie(state), Inf)) +
-  add_event(name = "PROGRESS", 
+  event_mapping(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
             #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))

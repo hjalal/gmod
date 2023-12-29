@@ -122,7 +122,7 @@ print.gmod_decision <- function(gmod_obj){
   # here we will have an environment to parse the gmod_object
   model_obj <- list()
   model_obj <- add_decision_info(gmod_obj, model_obj)
-  model_obj <- add_event_info(gmod_obj, model_obj)
+  model_obj <- event_mapping_info(gmod_obj, model_obj)
   model_obj <- add_outcome_info(gmod_obj, model_obj)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_outcome_probs(gmod_obj, model_obj)
@@ -145,7 +145,7 @@ add_outcome_info <- function(gmod_obj, model_obj){
   model_obj$n_outcomes <- length(model_obj$outcomes)
   return(model_obj)
 }
-# add_event_info <- function(gmod_obj, model_obj){
+# event_mapping_info <- function(gmod_obj, model_obj){
 #   # retrieve states layer
 #   event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
 #   model_obj$events <- event_layer$events
@@ -232,24 +232,29 @@ add_outcome_probs <- function(gmod_obj, model_obj){
 
 
 # if class is Markov
-print.gmod_markov <- function(gmod_obj){
+gmod_build <- function(x, ...) UseMethod("gmod_build")
+gmod_build.gmod_markov <- function(gmod_obj){
   # here we will have an environment to parse the gmod_object
   n_cycles <- gmod_obj$n_cycles
   model_obj <- list()
+  model_obj$n_cycles <- n_cycles
   model_obj$is_cycle_dep <- is_cycle_dep(gmod_obj)
   model_obj$tunnel_states <- tunnel_states(gmod_obj)
   
   model_obj <- add_decision_info(gmod_obj, model_obj)
   model_obj <- add_markov_info(gmod_obj, model_obj)
-  model_obj <- add_event_info(gmod_obj, model_obj)
+  model_obj <- event_mapping_info(gmod_obj, model_obj)
   model_obj <- add_markov_initial_probs(gmod_obj, model_obj)
+  model_obj <- add_discounts_info(gmod_obj, model_obj)
   events_df <- get_event_df(gmod_obj)
   model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
-  #return(model_obj)
-  print(model_obj)
+  class(model_obj) <- "gmod_markov"
+  return(model_obj)
+  #print(model_obj)
 }
+
 
 add_decision_info <- function(gmod_obj, model_obj){
   # retrieve states layer
@@ -258,6 +263,8 @@ add_decision_info <- function(gmod_obj, model_obj){
   model_obj$n_decisions <- length(model_obj$decisions)
   return(model_obj)
 }
+
+
 add_markov_info <- function(gmod_obj, model_obj){
   # retrieve states layer
   states_layer <- retrieve_layer_by_type(gmod_obj, type = "states")
@@ -280,10 +287,10 @@ add_markov_info <- function(gmod_obj, model_obj){
   model_obj$states <- states
   model_obj$n_states <- length(states)
   model_obj$states_expanded <- states_expanded
-  model_obj$n_expanded_states <- length(states_expanded)    
+  model_obj$n_states_expanded <- length(states_expanded)    
   return(model_obj)
 }
-add_event_info <- function(gmod_obj, model_obj){
+event_mapping_info <- function(gmod_obj, model_obj){
   # retrieve states layer
   event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
   model_obj$events <- event_layer$events
@@ -291,17 +298,30 @@ add_event_info <- function(gmod_obj, model_obj){
   return(model_obj) 
 }
 
+add_discounts_info <- function(gmod_obj, model_obj){
+  discounts_info <- retrieve_layer_by_type(gmod_obj, type = "discounts")
+  model_obj$discounts <- discounts_info$discounts
+  names(model_obj$discounts) <- discounts_info$payoffs
+  return(model_obj)
+}
+
 add_markov_initial_probs <- function(gmod_obj, model_obj){
   # all prob are 0, just replace the ones provided with their values
   markov_p0 <- retrieve_layer_by_type(gmod_obj, type = "initial_prob")
   init_p0 <- markov_p0$probs
   init_states <- markov_p0$states
-  p0 <- rep(0, model_obj$n_states)  # empty vector
-  names(p0) <- model_obj$states
+  tunnel_states <- model_obj$tunnel_states
+  p0 <- rep(0, model_obj$n_states_expanded)  # empty vector
+  names(p0) <- model_obj$states_expanded
+  
   for (d in model_obj$decisions){
     model_obj$p0[[d]] <- p0
     for (i in 1:length(init_p0)){
-      model_obj$p0[[d]][init_states[i]] <- init_p0[i]
+      state <- init_states[i]
+      if (state %in% tunnel_states){
+        state <- paste0(state, "_tnl1")
+      }
+      model_obj$p0[[d]][state] <- init_p0[i]
     }
     model_obj$p0[[d]] <- check_prob_vector(model_obj$p0[[d]])
   }
@@ -352,7 +372,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
         p_trans_formula <- gsub("\\bdecision\\b", paste0("'", decision, "'"), p_trans_formula)
         
         # write error trap if state within cycle_in_state doesn't match state
-        p_trans_formula <- gsub("cycle_in_state\\([^)]+\\)", paste0("tnl=",state_idx), p_trans_formula)
+        p_trans_formula <- gsub("cycle_in_state\\([^)]+\\)", paste0("cycle_in_state=",state_idx), p_trans_formula)
         
         if (!(state %in% tunnel_states & state == dest & dest_idx != state_idx+1)){ #otherwise keep at "0"
           if (model_obj$is_cycle_dep){ # array
@@ -387,8 +407,8 @@ add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
         #cycle <- cycle_range # try vector format!
         cycles <- paste0("cycle", cycle)
         # change n_states to n_states_expanded
-        model_obj$Payoffs[[payoff]][[decision]] <- matrix("0", nrow=n_states_expanded, ncol = n_cycles, 
-                                                          dimnames = list(states_expanded, cycles))
+        model_obj$Payoffs[[payoff]][[decision]] <- matrix("0", nrow=n_cycles, ncol = n_states_expanded, 
+                                                          dimnames = list(cycles, states_expanded))
       } else { # a single vector 
         model_obj$Payoffs[[payoff]][[decision]] <- rep("0", n_states_expanded)
         names(model_obj$Payoffs[[payoff]][[decision]]) <- states_expanded
@@ -407,7 +427,7 @@ add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
         
         if (model_obj$is_cycle_dep){ # matrix
           payoff_formula <- sapply(cycle, function(x) gsub("\\bcycle\\b", paste0("cycle=",x), payoff_formula))
-          model_obj$Payoffs[[payoff]][[decision]][state_expanded, ] <- payoff_formula
+          model_obj$Payoffs[[payoff]][[decision]][, state_expanded] <- payoff_formula
         } else {
           model_obj$Payoffs[[payoff]][[decision]][state_expanded] <- payoff_formula
         }
@@ -417,58 +437,6 @@ add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
   } # end payoff
   return(model_obj)
 }
-
-
-evaluate_model <- function(model_obj){
-  
-  eval(parse(text = model_obj$P$TrtA[1,3,5])) 
-  states <- model_obj$states
-  n_states <- model_obj$n_states
-  #events_df <- get_event_df(gmod_obj)
-  #first_event <- get_first_event(events_df)
-  # vec_p_raw <- vec_p_stay <- rep("0", n_states)
-  # names(vec_p_raw) <- names(vec_p_stay) <- states
-  # for (state in states){
-  #   vec_p_raw[state] <- get_prob_chain(gmod_obj, events_df, end_state = state)
-  #   vec_p_stay[state] <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-  # }
-  
-  # add "curr_state" ones as well here to form P_raw as a matrix
-  for (decision in model_obj$decisions){
-    model_obj[[decision]]$P_raw <- matrix("0", nrow = n_states, ncol = n_states)
-    model_obj[[decision]]$P <- matrix(0, nrow = n_states, ncol = n_states)
-    rownames(model_obj[[decision]]$P_raw) <- colnames(model_obj[[decision]]$P_raw) <- states
-    rownames(model_obj[[decision]]$P) <- colnames(model_obj[[decision]]$P) <- states
-    
-    for (dest in states){
-      for (state in states){
-        p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
-        p_trans_value <- eval(parse(text = p_trans_formula)) 
-        if (p_trans_value == 0){
-          p_trans_formula <- "0"
-        }
-        if (state == dest){
-          p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-          p_stay_value <- eval(parse(text = p_stay_formula)) 
-          if (p_stay_value > 0){ # can be added to the p_transformula
-            if (p_trans_value > 0){
-              p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
-            } else { # if the transformula is empty, then just keep the stay formula
-              p_trans_formula <- p_stay_formula
-            }
-          }
-        }
-        model_obj[[decision]]$P[state, dest] <- eval(parse(text = p_trans_formula))
-        
-        p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
-        p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
-        model_obj[[decision]]$P_raw[state, dest] <- p_trans_formula
-      }
-    }
-  }
-  return(model_obj)
-}
-
 
 retrieve_layer_by_type <- function(gmod_obj, type){
   # Use lapply to filter the list based on the condition
@@ -490,7 +458,7 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   gmod_obj
 }
 
-add_event <- function(name, if_event, goto, with_probs){
+event_mapping <- function(name, if_event, goto, with_probs){
   # events are the links that can either go to states or other events
   input_string <- deparse(substitute(with_probs))
   #input_string <- as.list(match.call())$with_probs
@@ -504,6 +472,10 @@ add_event <- function(name, if_event, goto, with_probs){
 initial_probs <- function(states, probs){
   list(type = "initial_prob", states = states, probs = probs)
 }
+discounts <- function(payoffs, discounts){
+  list(type = "discounts", payoffs = payoffs, discounts = discounts)
+}
+
 decisions <- function(...){
   list(type = "decisions", decisions = c(...))
   # Define decisions based on each input
@@ -688,7 +660,6 @@ probs2string <- function(input_string) {
   y <- strsplit(cleaned_string, ",|(?>\\(.*?\\).*?\\K(,|$))", perl = TRUE)[[1]]
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces
-  #y <- trimws(unlist(strsplit(extracted_elements, ",")))
   # remove complement in "inf"
   inf_index <- y == "Inf"
   if (any(inf_index)){
@@ -696,4 +667,94 @@ probs2string <- function(input_string) {
     y[inf_index] <- paste0("1-(", sum_others, ")")
   }
   return(y)
+}
+
+
+gmod_parse <- function(x, ...) UseMethod("gmod_parse")
+gmod_parse.gmod_markov <- function(model_struc, params = NULL){
+  # for Markov structure, parse P, p0 and Payoffs and replace
+  model_num_str <- model_struc
+  decisions <- model_struc$decisions
+  for (decision in decisions){
+    model_num_str$p0[[decision]] <- parse_object(model_struc$p0[[decision]])
+    model_num_str$P[[decision]] <- parse_object(model_struc$P[[decision]])
+    for (payoff in model_struc$payoff_names){
+      model_num_str$Payoffs[[payoff]][[decision]] <- 
+        parse_object(model_struc$Payoffs[[payoff]][[decision]])
+    }
+  }
+  class(model_num_str) <- "gmod_markov"
+  return(model_num_str)
+}
+
+parse_object <- function(x){
+  d <- dim(x)
+  # Convert the array to a vector
+  vectorized_x <- c(x)
+  n <- length(vectorized_x)
+  eval_x <- rep(0, n)
+  for (i in 1:n){
+    eval_x[i] <- eval(parse(text = vectorized_x[i]))
+  }
+  # Convert the vector back to an array
+  if (is.null(d)){
+    y <- as.vector(eval_x)
+    names(y) <- names(x)
+  } else {
+    y <- array(eval_x, dim = d, dimnames = dimnames(x))
+  }
+  return(y)
+}
+
+gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
+gmod_evaluate.gmod_markov <- function(model_num_struc){
+  # evaluate based on the objects and create a list
+  model_results <- model_num_struc #list()
+  decisions <- model_num_struc$decisions
+  n_decisions <- model_num_struc$n_decisions
+  n_cycles <- model_num_struc$n_cycles
+  cycles <- 1:n_cycles
+  states <- model_num_struc$states
+  n_states <- model_num_struc$n_states
+  states_expanded <- model_num_struc$states_expanded
+  n_states_expanded <- model_num_struc$n_states_expanded
+  payoffs <- model_num_struc$payoff_names
+  n_payoffs <- model_num_struc$n_payoffs
+  discounts <- model_num_struc$discounts # a named vector with discount rates
+  is_cycle_dep <- model_num_struc$is_cycle_dep
+  
+  for (decision in decisions){
+    Trace <- matrix(NA, nrow = n_cycles, ncol = n_states_expanded, dimnames = list(cycles, states_expanded))
+    Trace[1, ] <- model_num_struc$p0[[decision]]
+    for (i in 2:n_cycles){
+      if (is_cycle_dep){ # use array syntax
+        P <- model_num_struc$P[[decision]][,,i]
+      } else { #use matrix syntax
+        P <- model_num_struc$P[[decision]]
+      }
+      Trace[i, ] <- Trace[i-1, ] %*% P
+    }
+    model_results$Trace[[decision]] <- Trace
+  } # end decision
+  
+  # Add payoffs multiplied by traces '
+  cycle_ones <- matrix(1,nrow = n_cycles, ncol = 1)
+  state_ones <- matrix(1,nrow = 1, ncol = n_states_expanded)
+  mat_summary <- matrix(0, nrow = n_decisions, ncol = n_payoffs, dimnames = list(decisions, payoffs))
+  for (decision in decisions){
+    for (payoff in payoffs){
+      mat_discounts <- matrix(1/(1+discounts[payoff])^(cycles-1), ncol = 1) %*% state_ones
+      Payoff <- model_num_struc$Payoffs[[payoff]][[decision]] 
+      if (!is_cycle_dep){ # if model is not cycle dependent, we will get a single vector of values
+        Payoff <- cycle_ones %*% matrix(Payoff, nrow = 1)
+      } 
+      R <- model_results$Trace[[decision]] * Payoff * mat_discounts
+      model_results$Results[[payoff]][[decision]] <- R
+      mat_summary[decision, payoff] <- sum(R)
+    } # end payoff
+    
+  } # end decision
+  model_results$Summary <- mat_summary
+  class(model_results) <- "gmod_markov"
+  return(model_results)
 }

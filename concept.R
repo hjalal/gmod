@@ -27,17 +27,17 @@ mygmod <- gmod() +
   states("Moderate", "Severe", "Dead") +  # write routine to detect mis-named or miscalculated names
   events("PROGRESS", "DIE") +
   initial_probs(states = "Moderate", values = 1) +  # the rest will be assumed 0, or if one left it is assumed to be 1-sum(others)
-  # add_events, the most powerful becuase it will allow using previous values, parameters...etc
+  # event_mappings, the most powerful becuase it will allow using previous values, parameters...etc
   # probs can infer a scalar, a function or a table. - function is changed to a table discretized ... 
   # current_state(), remainder() and decision() are variables that can be used internally 
   # other variables are curr_cycle() and curr_state_cycle() 
   # previous event() 
-  add_event(name = "DIE",  
+  event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
             # probs - can also ignore the last entry - assumed = remainder()
             with_probs = c(f(curr_state), prob_left())) +
-  add_event(name = "PROGRESS", 
+  event_mapping(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", stay()), 
             with_probs = c(f(current_state(), decision()), prob_left()))
