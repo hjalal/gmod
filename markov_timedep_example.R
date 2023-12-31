@@ -29,7 +29,7 @@ pDie <- function(state, cycle, cycle_in_state){
   #df_pDie$value[df_pDie$state == state]
 }
 
-pProg <- function(state, decision){
+pProg <- function(state, decision, DIE){
   #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
   #state <- get("state", envir = parent.frame())  # Get x from the calling environment
   (state=="Moderate")*rrProg(decision)*pProgNoTrt
@@ -79,12 +79,13 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state, cycle, cycle_in_state('Moderate')), Inf)) +
+            with_probs = c(pDie(state), Inf)) +
   event_mapping(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
             #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision), Inf)) + 
+            with_probs = c(pProg(state, decision, prev_event("DIE")), Inf)) + 
+            #with_probs = c(pProg(state, decision), Inf)) + 
   payoffs(cost = cost(state), 
           effectiveness = effectiveness(state))
 tunnel_states(mygmod)

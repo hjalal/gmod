@@ -372,6 +372,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
         state_idx <- as.integer(state_comp[2])
         
         p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = dest)
+        #if (p_trans_formula == "()") {p_trans_formula <- "0"}
         if (state == dest){
           p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
           p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
@@ -623,6 +624,7 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
   event_chains <- get_event_chain_ids(events_df, goto_id = end_state)
   # convert to strings with * between each element and + between each chain
   prob_chain <- build_prob_chain(events_df, event_chains)
+  if (prob_chain == "()"){prob_chain <- "0"}
   return(prob_chain)
 }
 
