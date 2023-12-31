@@ -14,7 +14,6 @@
 # for example, disease can have two dimensions - bp level and dm.
 # 
 
-
 # Define a simple S3 class for a plot
 gmod <- function(model_type, n_cycles = 50) {
   gmod_obj <- list()
@@ -118,7 +117,7 @@ retrieve_obj_type <- function(gmod_obj, obj){
 }
 
 # if class is Decision
-print.gmod_decision <- function(gmod_obj){
+gmod_build.gmod_decision <- function(gmod_obj){
   # here we will have an environment to parse the gmod_object
   model_obj <- list()
   model_obj <- add_decision_info(gmod_obj, model_obj)
@@ -126,8 +125,45 @@ print.gmod_decision <- function(gmod_obj){
   model_obj <- add_outcome_info(gmod_obj, model_obj)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_outcome_probs(gmod_obj, model_obj)
-  #return(model_obj)
-  print(model_obj)
+  class(model_obj) <- "gmod_decision"
+  return(model_obj)
+  #print(model_obj)
+}
+
+gmod_parse.gmod_decision <- function(model_struc, params = NULL){
+  # for Decison structure, parse P and Payoffs 
+  model_num_str <- model_struc
+  decisions <- model_struc$decisions
+  for (decision in decisions){
+    model_num_str$P[[decision]] <- parse_object(model_struc$P[[decision]])
+    for (payoff in model_struc$payoff_names){
+      model_num_str$Payoffs[[payoff]][[decision]] <- 
+        parse_object(model_struc$Payoffs[[payoff]][[decision]])
+    }
+  }
+  class(model_num_str) <- "gmod_decision"
+  return(model_num_str)
+  # 
+}
+gmod_evaluate.gmod_decision <- function(model_num_struc){
+  payoffs <- model_num_struc$payoff_names
+  decisions <- model_num_struc$decisions
+  n_payoffs <- model_num_struc$n_payoffs
+  n_decisions <- model_num_struc$n_decisions
+  
+  model_results <- model_num_struc #list()
+  mat_summary <- matrix(0, nrow = n_decisions, ncol = n_payoffs, dimnames = list(decisions, payoffs))
+  
+  for (decision in decisions){
+    for (payoff in payoffs){
+      mat_summary[decision, payoff] <- 
+        matrix(model_num_struc$Payoffs[[payoff]][[decision]], nrow = 1) %*% 
+        matrix(model_num_struc$P[[decision]], ncol = 1)
+      
+    } # end payoffs
+  } # end decision
+  model_results$Summary <- mat_summary
+  return(model_results)
 }
 
 # add_decision_info <- function(gmod_obj, model_obj){
@@ -166,8 +202,7 @@ add_outcome_probs <- function(gmod_obj, model_obj){
   n_outcomes <- model_obj$n_outcomes
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
-  
-  # payoffs
+
   payoffs <- model_obj$payoffs
   payoff_names <- names(payoffs)
   
@@ -180,53 +215,26 @@ add_outcome_probs <- function(gmod_obj, model_obj){
   
   # add "curr_outcome" ones as well here to form P_raw as a matrix
   for (decision in model_obj$decisions){
-    model_obj[[decision]]$P_raw <- rep("0", n_outcomes)
-    model_obj[[decision]]$P <- rep(0, n_outcomes)
-    names(model_obj[[decision]]$P_raw) <- outcomes
-    names(model_obj[[decision]]$P) <- outcomes
-    
+    model_obj$P[[decision]] <- rep("0", n_outcomes)
+    names(model_obj$P[[decision]]) <- outcomes
     # iterate through payoffs
     for (payoff_name in payoff_names){
-      model_obj[[decision]]$payoffs[[payoff_name]] <- rep(0, n_outcomes)
-      names(model_obj[[decision]]$payoffs[[payoff_name]]) <- outcomes
+      model_obj$Payoffs[[payoff_name]][[decision]] <- rep("0", n_outcomes)
+      names(model_obj$Payoffs[[payoff_name]][[decision]]) <- outcomes
     }
-    
     for (outcome in outcomes){
       p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
-      p_trans_value <- eval(parse(text = p_trans_formula)) 
-      # if (p_trans_value == 0){
-      #   p_trans_formula <- "0"
-      # }
-      # if (state == dest){
-      #   p_stay_formula <- get_prob_chain(gmod_obj, events_df, end_state = "curr_state")
-      #   p_stay_value <- eval(parse(text = p_stay_formula)) 
-      #   if (p_stay_value > 0){ # can be added to the p_transformula
-      #     if (p_trans_value > 0){
-      #       p_trans_formula <- paste0(p_trans_formula, "+", p_stay_formula)
-      #     } else { # if the transformula is empty, then just keep the stay formula
-      #       p_trans_formula <- p_stay_formula
-      #     }
-      #   }
-      #   }
-      
-      model_obj[[decision]]$P[outcome] <- eval(parse(text = p_trans_formula))
-      
       #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
-      p_trans_formula <- gsub("\\bdecision\\b", decision, p_trans_formula)
-      model_obj[[decision]]$P_raw[outcome] <- p_trans_formula
+      p_trans_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_trans_formula)
+      model_obj$P[[decision]][outcome] <- p_trans_formula
       for (payoff_name in payoff_names){
-        model_obj[[decision]]$payoffs[[payoff_name]][outcome] <- eval(payoffs[[payoff_name]])
+        payoff_formula <- deparse(payoffs[[payoff_name]])
+        payoff_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), payoff_formula)
+        payoff_formula <- gsub("\\outcome\\b", paste0("'",outcome,"'"), payoff_formula)
+        model_obj$Payoffs[[payoff_name]][[decision]][outcome] <- payoff_formula
       } # end payoffs 
     } # end outcome
-    # EVs
-    for (payoff_name in payoff_names){
-      model_obj[[decision]]$ev[[payoff_name]] <- 
-        model_obj[[decision]]$payoffs[[payoff_name]] %*% 
-        model_obj[[decision]]$P
-      
-    } # end payoffs
   } # end decision
-  
   return(model_obj)
 }
 
@@ -507,6 +515,12 @@ prob_left <- function() {
   return(Inf)
 }
 
+# specialized functions
+prev_event <- function(...){
+  args <- list(...)
+  return(unlist(args))
+}
+
 construct_prob_vec <- function(x, v_prob) {
   # Check if prob_left() function is used in v_prob
   v_prob <- check_prob_vector(v_prob) 
@@ -584,8 +598,10 @@ expand_list <- function(original_list, output = "df") {
 
 # building transition prob matrix logic =======
 get_event_df <- function(gmod_obj){
-  event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
-  bind_rows(event_layers) 
+  event_layers <- retrieve_layer_by_type(gmod_obj, type = "event") %>% 
+    bind_rows() 
+  event_layers$id <- 1:nrow(event_layers)
+  return(event_layers)
 }
 
 # identify the event chain
@@ -603,50 +619,96 @@ get_outcomes <- function(events_df){
 }
 
 get_prob_chain <- function(gmod_obj, events_df, end_state){
-  first_event <- get_first_event(events_df)
-  # read rows where then == end_state
-  sel_events_df <- events_df %>% 
-    filter(goto == end_state)
-  n_row <- nrow(sel_events_df)
-  prob_chain <- ""
-  # for each row, create chain
-  if (n_row > 0){ # at least one states leads to the current state
-    for (i in 1:n_row){
-      # from each then go to "name" and 
-      # concatenate until reaching first_event 
-      # there should be a single first_event
-      # otherwise error
-      curr_row <- sel_events_df[i,]
-      p <- ""
-      while(TRUE){
-        # cumulate and get p where goto pf prev row == name of curr_row
-        if (p == ""){
-          p <- paste0("(",curr_row$with_probs,")")
-        } else {
-          p <- paste0("(",curr_row$with_probs,")", "*", p)
-        }
-        # stop if curr_row$name == first_event
-        if (curr_row$name == first_event) break
-        # set prev_row to current row
-        curr_row <- events_df[events_df$goto == curr_row$name, ]
-        if (nrow(curr_row)>1){
-          stop(paste("Multiple outcomes lead to the same event", curr_row))
-        }
-      }
-      if (prob_chain == ""){
-        prob_chain <- p
-      } else {
-        prob_chain <- paste0(prob_chain, "+", p)
-      }
-    }
-  } else { # if there are no events leading to the current state
-    prob_chain <- "0"
-  }
-  # remove row
+  # get the row id sequences for for each event chain
+  event_chains <- get_event_chain_ids(events_df, goto_id = end_state)
+  # convert to strings with * between each element and + between each chain
+  prob_chain <- build_prob_chain(events_df, event_chains)
   return(prob_chain)
 }
 
+# Function to retrieve the value 'X' based on the 'name'
+get_id_with_events <- function(data, goto_id) {
+  #return(paste0("(",data$with_probs[data$goto == goto_id],")"))
+  return(data$id[data$goto == goto_id])
+}
 
+get_event_chain_ids <- function(data, goto_id) {
+  names <- data$name[data$goto == goto_id]
+  all_lineages <- list()
+  
+  for (name in names) {
+    all_lineages[[length(all_lineages) + 1]] <- get_event_chain_ids(data, name)
+  }
+  
+  if (length(names) == 0) {
+    return(0) #list(as.character(goto_id)))
+  } else {
+    individual_lineages <- list()
+    for (i in 1:length(all_lineages)) {
+      X <- get_id_with_events(data, goto_id)[i]
+      individual_lineages <- c(
+        individual_lineages, 
+        lapply(all_lineages[[i]], function(x) c(x, X))
+      )
+    }
+    return(individual_lineages)
+  }
+}
+
+
+# builds prob chain from event id chains
+build_prob_chain <- function(events_df, event_chains){
+  prob_prod_chain <- character()
+  for (i in 1:length(event_chains)){
+    with_probs <- events_df$with_probs[event_chains[[i]]]
+    # if any has "prev_event(" in it, replace it with the value of the name=event in the same chain
+    with_probs <- prev_event_value(events_df, with_probs, chain_ids = event_chains[[i]])
+    prob_prod_chain[i] <- paste0("(", with_probs,")", collapse = "*")
+  }
+  event_chain_list <- unlist(prob_prod_chain)
+  prob_chain <- paste(event_chain_list, collapse = "+")
+  return(prob_chain)
+}
+
+prev_event_value <- function(events_df, with_probs, chain_ids){
+  prev_event_ids <- grep(x = with_probs, pattern = "\\bprev_event\\b")
+  if (length(prev_event_ids)>0){
+  for (prev_event_id in prev_event_ids){
+    # look forward through event ids to get the value of the event inside the parenthesis
+    prev_event_ref <- with_probs[prev_event_id]
+    pattern <- 'prev_event\\(([^\\)]+)\\)'
+    extracted_strings <- regmatches(prev_event_ref, gregexpr(pattern, prev_event_ref))[[1]]
+    extracted_events <- gsub('.*\\((.*)\\)', '\\1', extracted_strings)
+    clean_string <- gsub("\\\"", "", extracted_events)
+    replacement_string <- character()
+    for (event in clean_string){
+      value <- events_df$if_event[events_df$name==event & events_df$id %in% chain_ids]
+      if (length(value)==0) stop(paste(event, "doesn't appear to be a prior event."))
+      if (length(value)>1) stop(paste(event, ": There are multiple prior events with the same name."))
+      replacement_string <- c(replacement_string, paste0("prev_event(\"",event,"\"=",value,")"))
+    }
+    with_probs[prev_event_id] <- replace_prev_event(with_probs[prev_event_id], replacement_string)
+  } # end for
+  } # end if
+  return(with_probs)
+}
+
+replace_prev_event <- function(text, replacements) {
+  pattern <- "prev_event\\((\"[^\"]+\")\\)"
+  matches <- gregexpr(pattern, text)[[1]]
+  match_lengths <- attr(matches, "match.length")
+  for (i in rev(seq_along(matches))) {
+    #replacement <- replacements[i]
+    text <- substr2(text, replacements[i], matches[i], matches[i]+match_lengths[i]-1)
+  }
+  return(text)
+}
+
+# function to replace part of a string with a variable length string
+substr2 <- function(text, replacement, start, stop) {
+  new_text <- paste0(substr(text, 1, start - 1), replacement, substr(text, stop + 1, nchar(text)))
+  return(new_text)
+}
 
 # Function to return the name of a function as a string
 probs2string <- function(input_string) {
@@ -657,7 +719,7 @@ probs2string <- function(input_string) {
   wo_white_spaces <- gsub("\\s+", "", input_string)
   cleaned_string <- sub("^c\\((.*)\\)$", "\\1", wo_white_spaces)
   #y <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
-  y <- strsplit(cleaned_string, ",|(?>\\(.*?\\).*?\\K(,|$))", perl = TRUE)[[1]]
+  y <- strsplit(cleaned_string, "(?![^(]*\\)),(?!.*\\))", perl = TRUE)[[1]]
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces
   # remove complement in "inf"
@@ -686,6 +748,7 @@ gmod_parse.gmod_markov <- function(model_struc, params = NULL){
   class(model_num_str) <- "gmod_markov"
   return(model_num_str)
 }
+
 
 parse_object <- function(x){
   d <- dim(x)
@@ -758,3 +821,5 @@ gmod_evaluate.gmod_markov <- function(model_num_struc){
   class(model_results) <- "gmod_markov"
   return(model_results)
 }
+
+

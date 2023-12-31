@@ -21,7 +21,7 @@ rrProg <- function(decision){
   #df_rrProg$value[df_rrProg$decision == decision]
 }
 
-pDie <- function(state, cycle){
+pDie <- function(state, cycle, cycle_in_state){
   #state <- get("state", envir = parent.frame())  # Get x from the calling environment
   switch(state, "Moderate" = pMortMod,
          "Severe" = pMortSev, 
@@ -79,7 +79,7 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   event_mapping(name = "DIE",  
             if_event = c(T, F), 
             goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state, cycle), Inf)) +
+            with_probs = c(pDie(state, cycle, cycle_in_state('Moderate')), Inf)) +
   event_mapping(name = "PROGRESS", 
             if_event = c(T, F), 
             goto = c("Severe", curr_state()), 
