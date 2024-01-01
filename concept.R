@@ -33,13 +33,13 @@ mygmod <- gmod() +
   # other variables are curr_cycle() and curr_state_cycle() 
   # previous event() 
   event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "PROGRESS"), 
+            values = c(T, F), 
+            results = c("Dead", "PROGRESS"), 
             # probs - can also ignore the last entry - assumed = remainder()
-            with_probs = c(f(curr_state), prob_left())) +
+            probs = c(f(curr_state), prob_left())) +
   event_mapping(name = "PROGRESS", 
-            if_event = c(T, F), 
-            goto = c("Severe", stay()), 
-            with_probs = c(f(current_state(), decision()), prob_left()))
+            values = c(T, F), 
+            results = c("Severe", stay()), 
+            probs = c(f(current_state(), decision()), prob_left()))
 
 mygmod

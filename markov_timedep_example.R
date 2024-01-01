@@ -73,19 +73,19 @@ effectiveness <- function(state){
 mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
-  events("DIE", "PROGRESS") +
+  #events("DIE", "PROGRESS") +
   discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.015, 0.015)) + 
   initial_probs(states = c("Moderate", "Severe"), probs = c(0.5,0.5)) +  
   event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state), Inf)) +
+            values = c(T, F), 
+            results = c("Dead", "PROGRESS"), 
+            probs = c(pDie(state), Inf)) +
   event_mapping(name = "PROGRESS", 
-            if_event = c(T, F), 
-            goto = c("Severe", curr_state()), 
-            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision, prev_event("DIE")), Inf)) + 
-            #with_probs = c(pProg(state, decision), Inf)) + 
+            values = c(T, F), 
+            results = c("Severe", curr_state()), 
+            #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
+            probs = c(pProg(state, decision, prev_event("DIE")), Inf)) + 
+            #probs = c(pProg(state, decision), Inf)) + 
   payoffs(cost = cost(state), 
           effectiveness = effectiveness(state))
 tunnel_states(mygmod)
@@ -114,14 +114,14 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   events("DIE", "PROGRESS") +
   initial_probs(states = c("Moderate", "Severe"), probs = c(0.3, Inf)) +  
   event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state, cycle), Inf)) +
+            values = c(T, F), 
+            results = c("Dead", "PROGRESS"), 
+            probs = c(pDie(state, cycle), Inf)) +
   event_mapping(name = "PROGRESS", 
-            if_event = c(T, F), 
-            goto = c("Severe", curr_state()), 
-            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision), Inf))
+            values = c(T, F), 
+            results = c("Severe", curr_state()), 
+            #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
+            probs = c(pProg(state, decision), Inf))
 
 model_obj <- print(mygmod)
 
@@ -150,14 +150,14 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
   event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state, cycle_in_state('Severe')), Inf)) +
+            values = c(T, F), 
+            results = c("Dead", "PROGRESS"), 
+            probs = c(pDie(state, cycle_in_state('Severe')), Inf)) +
   event_mapping(name = "PROGRESS", 
-            if_event = c(T, F), 
-            goto = c("Severe", curr_state()), 
-            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision, cycle_in_state('Moderate')), Inf))
+            values = c(T, F), 
+            results = c("Severe", curr_state()), 
+            #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
+            probs = c(pProg(state, decision, cycle_in_state('Moderate')), Inf))
 
 model_obj <- print(mygmod)
 
@@ -186,13 +186,13 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
   event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "PROGRESS"), 
-            with_probs = c(pDie(state, cycle), Inf)) +
+            values = c(T, F), 
+            results = c("Dead", "PROGRESS"), 
+            probs = c(pDie(state, cycle), Inf)) +
   event_mapping(name = "PROGRESS", 
-            if_event = c(T, F), 
-            goto = c("Severe", curr_state()), 
-            #with_probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            with_probs = c(pProg(state, decision, cycle_in_state('Moderate')), Inf))
+            values = c(T, F), 
+            results = c("Severe", curr_state()), 
+            #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
+            probs = c(pProg(state, decision, cycle_in_state('Moderate')), Inf))
 
 model_obj <- print(mygmod)

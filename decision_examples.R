@@ -12,16 +12,16 @@ pDie("Antibiotics")
 
 mygmod <- gmod(model_type = "Decision") + 
   decisions("Amputate", "Antibiotics") + 
-  outcomes("Dead", "Alive") +
-  events("EVENT1", "DIE") + 
-  event_mapping(name = "EVENT1",  
-                if_event = c(T, F), 
-                goto = c("DIE", "DIE"), 
-                with_probs = c(0.6, Inf))  + 
-  event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Dead", "Alive"), 
-            with_probs = c(pDie(decision), Inf)) 
+  #outcomes("Dead", "Alive") +
+  #events("EVENT1", "DIE") + 
+  event_mapping(event = "EVENT1",  
+                values = c(T, F), 
+                results = c("DIE", "DIE"), 
+                probs = c(0.6, Inf))  + 
+  event_mapping(event = "DIE",  
+            values = c(T, F), 
+            results = c("Dead", "Alive"), 
+            probs = c(pDie(decision), Inf)) 
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
@@ -77,11 +77,12 @@ c_HVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
 
-cost <- function(decision, outcome){
+cost <- function(decision, outcome){ #}, propHVE){
   c_biopsy*(decision=="Biopsy") + 
     c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
     c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) 
+    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
+    #c_HVE*propHVE
 }
 effectiveness <- function(decision, outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
@@ -91,28 +92,28 @@ effectiveness <- function(decision, outcome){
 cost("Biopsy", "HVE_comp")
 effectiveness("Biopsy", "Death")
 
-
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
-  events("DIE", "HVE","get_comp") + 
-  event_mapping(name = "DIE",  
-            if_event = c(T, F), 
-            goto = c("Death", "HVE"), 
-            with_probs = c(pDie(decision), Inf)) + 
-  event_mapping(name = "HVE",  
-            if_event = c(T, F), 
-            goto = c("get_HVE_comp", "get_OVE_comp"), 
-            with_probs = c(p_HVE, Inf)) +
-  event_mapping(name = "get_HVE_comp", 
-            if_event = c(T, F),
-            goto = c("HVE_comp", "no_HVE_comp"),
-            with_prob = c(p_comp(decision, HVE = TRUE), Inf))  +
-  event_mapping(name = "get_OVE_comp", 
-            if_event = c(T, F),
-            goto = c("OVE_comp", "no_OVE_comp"),
-            with_prob = c(p_comp(decision, HVE = FALSE), Inf)) + 
-  payoffs(cost = cost(decision, outcome), 
+  #events("DIE", "HVE","get_comp") + 
+  event_mapping(event = "DIE",  
+            values = c(T, F), 
+            results = c("Death", "HVE"), 
+            probs = c(pDie(decision), Inf)) + 
+  event_mapping(event = "HVE",  
+            values = c(T, F), 
+            results = c("get_HVE_comp", "get_OVE_comp"), 
+            probs = c(p_HVE, Inf)) +
+  event_mapping(event = "get_HVE_comp", 
+            values = c(T, F),
+            results = c("HVE_comp", "no_HVE_comp"),
+            probs = c(p_comp(decision, HVE = TRUE), Inf))  +
+  event_mapping(event = "get_OVE_comp", 
+            values = c(T, F),
+            results = c("OVE_comp", "no_OVE_comp"),
+            probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
+  #payoffs(cost = cost(decision, outcome, prop_with_event("HVE"=TRUE, decision)), 
+  payoffs(cost = cost(decision, outcome),  
           effectiveness = effectiveness(decision, outcome))
 
 model_struc <- gmod_build(mygmod)
@@ -173,18 +174,18 @@ mygmod <- gmod(model_type = "Decision") +
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   events("DIE", "HVE","get_comp") + 
-  event_mapping(name = "DIE",  
-                if_event = c(T, F), 
-                goto = c("Death", "HVE"), 
-                with_probs = c(pDie(decision), Inf)) + 
-  event_mapping(name = "HVE",  
-                if_event = c(T, F), 
-                goto = c("get_comp", "get_comp"), 
-                #with_probs = c(f_HVE(prev_event("DIE")), Inf)) +
-                with_probs = c(p_HVE, Inf)) +
-  event_mapping(name = "get_comp", 
-                if_event = c(T, F),
-                goto = c("comp", "no_comp"),
+  event_mapping(event = "DIE",  
+                values = c(T, F), 
+                results = c("Death", "HVE"), 
+                probs = c(pDie(decision), Inf)) + 
+  event_mapping(event = "HVE",  
+                values = c(T, F), 
+                results = c("get_comp", "get_comp"), 
+                #probs = c(f_HVE(prev_event("DIE")), Inf)) +
+                probs = c(p_HVE, Inf)) +
+  event_mapping(event = "get_comp", 
+                values = c(T, F),
+                results = c("comp", "no_comp"),
                 with_prob = c(p_comp(decision, prev_event("HVE"), prev_event("DIE")), Inf))
 
 model_struc <- gmod_build(mygmod)

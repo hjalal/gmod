@@ -33,7 +33,7 @@ gmod <- function(model_type, n_cycles = 50) {
 # is_cycle_dep <- function(gmod_obj){
 #   #gmod_obj$layers
 #   events_df <- get_event_df(gmod_obj)
-#   any(grepl("\\bcycle\\b", events_df$with_probs)) 
+#   any(grepl("\\bcycle\\b", events_df$probs)) 
 #   # or any payoffs?
 # }
 # is_payoff_cycle_dep <- function(model_obj){
@@ -43,7 +43,7 @@ is_cycle_dep <- function(gmod_obj){
   #gmod_obj$layers
   events_df <- get_event_df(gmod_obj)
   payoffs <- retrieve_layer_by_type(gmod_obj, type = "payoffs")
-  transitions_cycle_dep <- any(grepl("\\bcycle\\b", events_df$with_probs)) 
+  transitions_cycle_dep <- any(grepl("\\bcycle\\b", events_df$probs)) 
   payoffs_cycle_dep <- any(grepl("\\bcycle\\b", payoffs$payoffs)) 
   any(transitions_cycle_dep, payoffs_cycle_dep)
 }
@@ -54,7 +54,7 @@ is_cycle_dep <- function(gmod_obj){
 #   #gmod_obj$layers
 #   events_df <- get_event_df(gmod_obj)
 #   # capture all tunnel states 
-#   matches <- str_match_all(events_df$with_probs, 'cycle_in_state\\("(.*?)"\\)')
+#   matches <- str_match_all(events_df$probs, 'cycle_in_state\\("(.*?)"\\)')
 #   second_elements <- lapply(matches, function(x) x[2])
 #   # Convert the list to a vector if needed
 #   tunnel_states <- unique(unlist(second_elements))
@@ -67,7 +67,7 @@ tunnel_states <- function(gmod_obj){
   payoffs_layer <- retrieve_layer_by_type(gmod_obj, type = "payoffs")
   payoffs_str <- sapply(payoffs_layer$payoffs, deparse)
   # capture all tunnel states 
-  matches_transitions <- str_match_all(events_df$with_probs, 'cycle_in_state\\("(.*?)"\\)')
+  matches_transitions <- str_match_all(events_df$probs, 'cycle_in_state\\("(.*?)"\\)')
   tunnel_transitions <- lapply(matches_transitions, function(x) x[2])
   # Convert the list to a vector if needed
   matches_payoffs <- str_match_all(payoffs_str, 'cycle_in_state\\("(.*?)"\\)')
@@ -93,9 +93,9 @@ tunnel2state <- function(tunnel_state){
 #   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event")
 #   dependencies <- list()
 #   for (l in event_layers){
-#     for (k in l$goto){
+#     for (k in l$results){
 #       dependencies <- append(dependencies, 
-#                              c(from = l$name, from_type = l$type,
+#                              c(from = l$event, from_type = l$type,
 #                                to = k, to_type = obj_type(k)))
 #     }
 #   }
@@ -123,8 +123,10 @@ gmod_build.gmod_decision <- function(gmod_obj){
   model_obj <- add_decision_info(gmod_obj, model_obj)
   model_obj <- event_mapping_info(gmod_obj, model_obj)
   model_obj <- add_outcome_info(gmod_obj, model_obj)
+  model_obj <- add_event_info(gmod_obj, model_obj)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_outcome_probs(gmod_obj, model_obj)
+  #model_obj <- add_event_probs(gmod_obj, model_obj)
   class(model_obj) <- "gmod_decision"
   return(model_obj)
   #print(model_obj)
@@ -181,6 +183,14 @@ add_outcome_info <- function(gmod_obj, model_obj){
   model_obj$n_outcomes <- length(model_obj$outcomes)
   return(model_obj)
 }
+add_event_info <- function(gmod_obj, model_obj){
+  # retrieve states layer
+  #events_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
+  events_df <- get_event_df(gmod_obj)
+  model_obj$events <- get_events(events_df)
+  model_obj$n_events <- length(model_obj$events)
+  return(model_obj)
+}
 # event_mapping_info <- function(gmod_obj, model_obj){
 #   # retrieve states layer
 #   event_layer <- retrieve_layer_by_type(gmod_obj, type = "events")
@@ -200,9 +210,11 @@ add_payoffs <- function(gmod_obj, model_obj){
 add_outcome_probs <- function(gmod_obj, model_obj){
   outcomes <- model_obj$outcomes
   n_outcomes <- model_obj$n_outcomes
+  events <- model_obj$events
+  n_events <- model_obj$n_events
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
-
+  
   payoffs <- model_obj$payoffs
   payoff_names <- names(payoffs)
   
@@ -234,6 +246,19 @@ add_outcome_probs <- function(gmod_obj, model_obj){
         model_obj$Payoffs[[payoff_name]][[decision]][outcome] <- payoff_formula
       } # end payoffs 
     } # end outcome
+    for (event in events){
+      event_values <- events_df$values[events_df$event == event]
+      n_values <- length(event_values)
+      model_obj$event_prop[[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
+                                              dimnames = list(event_values, model_obj$decisions))
+      for (event_value in event_values){
+        # exclude rows where selected event has other values 
+        sel_events_df <- events_df[!(events_df$event == event & events_df$value != event_value)]
+        p_event_formula <- get_prob_chain(gmod_obj, sel_events_df, end_state = event)
+        p_event_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_event_formula)
+        model_obj$event_prop[[event]][event_value, decision] <- p_event_formula
+      } # end event value
+    } # end event values 
   } # end decision
   return(model_obj)
 }
@@ -255,6 +280,8 @@ gmod_build.gmod_markov <- function(gmod_obj){
   model_obj <- add_markov_initial_probs(gmod_obj, model_obj)
   model_obj <- add_discounts_info(gmod_obj, model_obj)
   events_df <- get_event_df(gmod_obj)
+  model_obj$events <- unique(events_df$event)
+  model_obj$n_events <- length(model_obj$events)
   model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
@@ -467,15 +494,15 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   gmod_obj
 }
 
-event_mapping <- function(name, if_event, goto, with_probs){
+event_mapping <- function(event, values, results, probs){
   # events are the links that can either go to states or other events
-  input_string <- deparse(substitute(with_probs))
-  #input_string <- as.list(match.call())$with_probs
+  input_string <- deparse(substitute(probs))
+  #input_string <- as.list(match.call())$probs
   list(type = "event", 
-       name = name, 
-       if_event = if_event, 
-       goto = goto, 
-       with_probs = probs2string(input_string)
+       event = event, 
+       values = values, 
+       results = results, 
+       probs = probs2string(input_string)
   )
 }
 initial_probs <- function(states, probs){
@@ -493,9 +520,9 @@ decisions <- function(...){
 states <- function(...){
   list(type = "states", states = c(...))
 }
-events <- function(...){
-  list(type = "events", events = c(...))
-}
+# events <- function(...){
+#   list(type = "events", events = c(...))
+# }
 outcomes <- function(...){
   list(type = "outcomes", outcomes = c(...))
 }
@@ -594,21 +621,22 @@ expand_list <- function(original_list, output = "df") {
 }
 
 
-
-
-
 # building transition prob matrix logic =======
 get_event_df <- function(gmod_obj){
-  event_layers <- retrieve_layer_by_type(gmod_obj, type = "event") %>% 
-    bind_rows() 
+  event_layers <- retrieve_layer_by_type(gmod_obj, type = "event") 
+  for (i in 1:length(event_layers)){
+    event_layers[[i]] <- event_layers[[i]] %>% as.data.frame() %>% mutate(values = as.character(values)) 
+  } 
+  event_layers <- bind_rows(event_layers) 
   event_layers$id <- 1:nrow(event_layers)
   return(event_layers)
 }
 
+
 # identify the event chain
 get_first_event <- function(events_df){
-  event_names <- events_df$name
-  event_dest <- events_df$goto
+  event_names <- events_df$event
+  event_dest <- events_df$results
   first_event <- unique(event_names[!(event_names %in% event_dest)])
   if (length(first_event) > 1){
     stop(paste(first_event, "are originating events. There must be only a single event."))
@@ -616,38 +644,41 @@ get_first_event <- function(events_df){
   return(first_event)
 }
 get_outcomes <- function(events_df){
-  unique(events_df$goto[!(events_df$goto %in% events_df$name)])
+  unique(events_df$results[!(events_df$results %in% events_df$event)])
+}
+get_events <- function(events_df){
+  unique(events_df$event)
 }
 
 get_prob_chain <- function(gmod_obj, events_df, end_state){
   # get the row id sequences for for each event chain
-  event_chains <- get_event_chain_ids(events_df, goto_id = end_state)
+  event_chains <- get_event_chain_ids(events_df, results_id = end_state)
   # convert to strings with * between each element and + between each chain
   prob_chain <- build_prob_chain(events_df, event_chains)
-  if (prob_chain == "()"){prob_chain <- "0"}
+  #if (prob_chain == "()"){prob_chain <- "0"}
   return(prob_chain)
 }
 
-# Function to retrieve the value 'X' based on the 'name'
-get_id_with_events <- function(data, goto_id) {
-  #return(paste0("(",data$with_probs[data$goto == goto_id],")"))
-  return(data$id[data$goto == goto_id])
+# Function to retrieve the value 'X' based on the 'event'
+get_id_with_events <- function(data, results_id) {
+  #return(paste0("(",data$probs[data$results == results_id],")"))
+  return(data$id[data$results == results_id])
 }
 
-get_event_chain_ids <- function(data, goto_id) {
-  names <- data$name[data$goto == goto_id]
+get_event_chain_ids <- function(data, results_id) {
+  events <- data$event[data$results == results_id]
   all_lineages <- list()
   
-  for (name in names) {
-    all_lineages[[length(all_lineages) + 1]] <- get_event_chain_ids(data, name)
+  for (event in events) {
+    all_lineages[[length(all_lineages) + 1]] <- get_event_chain_ids(data, event)
   }
   
-  if (length(names) == 0) {
-    return(0) #list(as.character(goto_id)))
+  if (length(events) == 0) {
+    return(0) #list(as.character(results_id)))
   } else {
     individual_lineages <- list()
     for (i in 1:length(all_lineages)) {
-      X <- get_id_with_events(data, goto_id)[i]
+      X <- get_id_with_events(data, results_id)[i]
       individual_lineages <- c(
         individual_lineages, 
         lapply(all_lineages[[i]], function(x) c(x, X))
@@ -662,37 +693,54 @@ get_event_chain_ids <- function(data, goto_id) {
 build_prob_chain <- function(events_df, event_chains){
   prob_prod_chain <- character()
   for (i in 1:length(event_chains)){
-    with_probs <- events_df$with_probs[event_chains[[i]]]
-    # if any has "prev_event(" in it, replace it with the value of the name=event in the same chain
-    with_probs <- prev_event_value(events_df, with_probs, chain_ids = event_chains[[i]])
-    prob_prod_chain[i] <- paste0("(", with_probs,")", collapse = "*")
+    event_chain <- event_chains[[i]]
+    event_chain <- event_chain[event_chain > 0]
+    probs <- filter_probs_by_order(x = events_df$probs, id = events_df$id, sel_ids = event_chain)
+    # if any has "prev_event(" in it, replace it with the value of the event=event in the same chain
+    probs <- prev_event_value(events_df, probs, chain_ids = event_chain)
+    prob_prod_chain[i] <- paste0("(", probs,")", collapse = "*")
   }
   event_chain_list <- unlist(prob_prod_chain)
   prob_chain <- paste(event_chain_list, collapse = "+")
   return(prob_chain)
 }
 
-prev_event_value <- function(events_df, with_probs, chain_ids){
-  prev_event_ids <- grep(x = with_probs, pattern = "\\bprev_event\\b")
-  if (length(prev_event_ids)>0){
-  for (prev_event_id in prev_event_ids){
-    # look forward through event ids to get the value of the event inside the parenthesis
-    prev_event_ref <- with_probs[prev_event_id]
-    pattern <- 'prev_event\\(([^\\)]+)\\)'
-    extracted_strings <- regmatches(prev_event_ref, gregexpr(pattern, prev_event_ref))[[1]]
-    extracted_events <- gsub('.*\\((.*)\\)', '\\1', extracted_strings)
-    clean_string <- gsub("\\\"", "", extracted_events)
-    replacement_string <- character()
-    for (event in clean_string){
-      value <- events_df$if_event[events_df$name==event & events_df$id %in% chain_ids]
-      if (length(value)==0) stop(paste(event, "doesn't appear to be a prior event."))
-      if (length(value)>1) stop(paste(event, ": There are multiple prior events with the same name."))
-      replacement_string <- c(replacement_string, paste0("prev_event(\"",event,"\"=",value,")"))
+# return df$X1 based on values in df$id where X1 are in the same order as id
+filter_probs_by_order <- function(x, id, sel_ids){
+  n <- length(sel_ids)
+  if (n == 0){
+    y <- "0"
+  } else {
+    y <- c()
+    for (i in 1:n){
+      y[i] <- x[id == sel_ids[i]]
     }
-    with_probs[prev_event_id] <- replace_prev_event(with_probs[prev_event_id], replacement_string)
-  } # end for
+  }
+  return(y)
+}
+
+
+prev_event_value <- function(events_df, probs, chain_ids){
+  prev_event_ids <- grep(x = probs, pattern = "\\bprev_event\\b")
+  if (length(prev_event_ids)>0){
+    for (prev_event_id in prev_event_ids){
+      # look forward through event ids to get the value of the event inside the parenthesis
+      prev_event_ref <- probs[prev_event_id]
+      pattern <- 'prev_event\\(([^\\)]+)\\)'
+      extracted_strings <- regmatches(prev_event_ref, gregexpr(pattern, prev_event_ref))[[1]]
+      extracted_events <- gsub('.*\\((.*)\\)', '\\1', extracted_strings)
+      clean_string <- gsub("\\\"", "", extracted_events)
+      replacement_string <- character()
+      for (event in clean_string){
+        value <- events_df$values[events_df$event==event & events_df$id %in% chain_ids]
+        if (length(value)==0) stop(paste(event, "doesn't appear to be a prior event."))
+        if (length(value)>1) stop(paste(event, ": There are multiple prior events with the same name."))
+        replacement_string <- c(replacement_string, paste0("prev_event(\"",event,"\"=",value,")"))
+      }
+      probs[prev_event_id] <- replace_prev_event(probs[prev_event_id], replacement_string)
+    } # end for
   } # end if
-  return(with_probs)
+  return(probs)
 }
 
 replace_prev_event <- function(text, replacements) {
@@ -824,4 +872,22 @@ gmod_evaluate.gmod_markov <- function(model_num_struc){
   return(model_results)
 }
 
+
+# useful functions ===========
+
+get_named_pairs <- function(...) {
+  args <- list(...)
+  print(args)
+  if (length(args) != 1 || length(names(args)) != 1) {
+    stop("Please provide a single pair argument.")
+  }
+  
+  name <- names(args)
+  value <- args[[name]]
+  
+  # Perform operations using the provided pair
+  cat("Name:", name, "\n")
+  cat("Value:", value, "\n")
+  # Add your logic or operations here based on the provided pair
+}
 
