@@ -48,7 +48,10 @@ effectiveness <- function(state){
 }
 
 cProg <- 1000
-
+cDead <- 50
+cSevere <- 100000
+cStay <- 600
+eProg <- -0.1
 # Markov Model ==========
 mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
@@ -79,8 +82,6 @@ model_res <- gmod_evaluate(model_num_struc)
 
 print(model_res)
 
-
-events_df
 
 
 
@@ -145,7 +146,7 @@ pProg <- function(state, decision, cycle_in_state){
 mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
-  events("DIE", "PROGRESS") +
+  #events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
   event_mapping(event = "DIE",  
             values = c(T, F), 
@@ -181,7 +182,7 @@ pProg <- function(state, decision, cycle_in_state){
 mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
-  events("DIE", "PROGRESS") +
+  #events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
   event_mapping(event = "DIE",  
             values = c(T, F), 

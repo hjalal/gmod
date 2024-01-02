@@ -174,7 +174,7 @@ f_HVE <- function(DIE){
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
-  events("DIE", "HVE","get_comp") + 
+  #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
                 values = c(T, F), 
                 results = c("Death", "HVE"), 
@@ -187,7 +187,7 @@ mygmod <- gmod(model_type = "Decision") +
   event_mapping(event = "get_comp", 
                 values = c(T, F),
                 results = c("comp", "no_comp"),
-                with_prob = c(p_comp(decision, prev_event("HVE"), prev_event("DIE")), Inf))
+                probs = c(p_comp(decision, prev_event("HVE")), Inf))
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
