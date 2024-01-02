@@ -227,7 +227,9 @@ q_VE_comp      <- 19     # remaining QALYs for those with VE-related complicatio
 q_loss_biopsy  <- 0.01   # one-time QALY loss due to brain biopsy
 q_death_biopsy <- 0      # remaining QALYs for those who died during biopsy
 
-cDie <- 5000
+cDie <- function(decision){
+  if (decision == "Biopsy") 10000 else 500
+}
 cNotDie <- 1000
 eDie <- 0.1
 eNotDie <- 0.9
@@ -244,18 +246,16 @@ p_comp <- function(decision, HVE){
   if (decision == "Biopsy" & HVE) return(p_HVE_comp_tx)
   if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
 }
-p_comp(decision = "Biopsy", prev_event = "OVE")
-c_HVE <- function(decision){
+cHVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
 
-cost <- function(decision, outcome){ #}, propHVE){
+cost <- function(decision, outcome){ 
   c_biopsy*(decision=="Biopsy") + 
     c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
     c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
-  #c_HVE*propHVE
-}
+    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+  }
 effectiveness <- function(decision, outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
     q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
@@ -272,12 +272,13 @@ mygmod <- gmod(model_type = "Decision") +
                 values = c(T, F), 
                 results = c("Death", "HVE"), 
                 probs = c(pDie(decision), Inf), 
-                payoffs = list(cost = c(cDie, cNotDie), 
+                payoffs = list(cost = c(cDie(decision), cNotDie), 
                                effectiveness = c(eDie, eNotDie))) + 
   event_mapping(event = "HVE",  
                 values = c(T, F), 
                 results = c("get_HVE_comp", "get_OVE_comp"), 
-                probs = c(p_HVE, Inf)) +
+                probs = c(p_HVE, Inf),
+                payoffs = list(cost = c(cHVE(decision), NA))) +
   event_mapping(event = "get_HVE_comp", 
                 values = c(T, F),
                 results = c("HVE_comp", "no_HVE_comp"),
@@ -296,6 +297,6 @@ model_res <- gmod_evaluate(model_num_struc)
 
 print(model_res)
 
-
+matches <- extract_c_matches("list(cost=c(cDie(decision),cNotDie),effectiveness=c(eDie,eNotDie))")
 # Doubilet example? ==========
 

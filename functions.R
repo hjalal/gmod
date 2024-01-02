@@ -61,11 +61,14 @@ is_cycle_dep <- function(gmod_obj){
 #   tunnel_states <- tunnel_states[!is.na(tunnel_states)]
 #   return(tunnel_states)
 # }
+my_deparse <- function(x){
+  paste0(deparse(x), collapse = "")
+}
 tunnel_states <- function(gmod_obj){
   #gmod_obj$layers
   events_df <- get_event_df(gmod_obj)
   payoffs_layer <- retrieve_layer_by_type(gmod_obj, type = "payoffs")
-  payoffs_str <- sapply(payoffs_layer$payoffs, deparse)
+  payoffs_str <- sapply(payoffs_layer$payoffs, my_deparse)
   # capture all tunnel states 
   matches_transitions <- str_match_all(events_df$probs, 'cycle_in_state\\("(.*?)"\\)')
   tunnel_transitions <- lapply(matches_transitions, function(x) x[2])
@@ -175,7 +178,7 @@ gmod_evaluate.gmod_decision <- function(model_num_struc){
         matrix(model_num_struc$P[[decision]], ncol = 1)
     } # end payoffs
   } # end decision
-  model_results$Outcome_payoffs <- mat_outcome_payoffs
+  model_results$Outcome_payoff_summary <- mat_outcome_payoffs
   
   # Event payoffs 
   mat_event_payoffs <- matrix(0, nrow = n_decisions, ncol = n_payoffs, 
@@ -190,8 +193,8 @@ gmod_evaluate.gmod_decision <- function(model_num_struc){
       } # end event
       mat_event_payoffs[,payoff] <- colSums(temp_mat)
     } # end payoffs
-  model_results$Events_payoffs <- mat_event_payoffs
-  model_results$Summary <- mat_outcome_payoffs + mat_event_payoffs
+  model_results$Event_payoff_summary <- mat_event_payoffs
+  model_results$Overall_summary <- mat_outcome_payoffs + mat_event_payoffs
   return(model_results)
 }
 
@@ -272,7 +275,7 @@ add_decision_eqns <- function(gmod_obj, model_obj){
       p_trans_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_trans_formula)
       model_obj$P[[decision]][outcome] <- p_trans_formula
       for (payoff_name in payoff_names){
-        payoff_formula <- deparse(payoffs[[payoff_name]])
+        payoff_formula <- paste0(deparse(payoffs[[payoff_name]]), collapse = "")
         payoff_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), payoff_formula)
         payoff_formula <- gsub("\\outcome\\b", paste0("'",outcome,"'"), payoff_formula)
         model_obj$Payoffs[[payoff_name]][[decision]][outcome] <- payoff_formula
@@ -505,7 +508,7 @@ add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
         state <- state_comp[1]
         state_idx <- as.integer(state_comp[2])
         
-        payoff_formula <- deparse(payoffs[[payoff]])
+        payoff_formula <- paste0(deparse(payoffs[[payoff]]), collapse = "")
         payoff_formula <- gsub("\\bstate\\b", paste0("'", state, "'"), payoff_formula)
         payoff_formula <- gsub("\\bdecision\\b", paste0("'", decision, "'"), payoff_formula)
         # write error trap if state within cycle_in_state doesn't match state
@@ -546,12 +549,12 @@ retrieve_layer_by_type <- function(gmod_obj, type){
 
 event_mapping <- function(event, values, results, probs, payoffs=NULL){
   # events are the links that can either go to states or other events
-  input_string <- deparse(substitute(probs))
-  if(is.null(payoffs)){
-    payoffs_string <- ""
-  } else {
-    payoffs_string <- deparse(substitute(payoffs))
-  }
+  input_string <- paste0(deparse(substitute(probs)), collapse = "")
+
+    payoffs_string <- paste0(deparse(substitute(payoffs)), collapse = "")
+    if (payoffs_string == "NULL"){
+      payoffs_string <- ""
+    }
   #input_string <- as.list(match.call())$probs
   list(type = "event", 
        event = event, 
@@ -852,26 +855,52 @@ probs2string <- function(input_string) {
   return(y)
 }
 
+
+# extract location of c() in a string ignoring inside parenthesis 
+extract_c_matches <- function(x){
+  n <- nchar(x)
+  start <- c()
+  end <- c()
+  n_open <- 0
+  c1_open <- FALSE # ignoring ( before the first c(
+  for (i in 1:n){
+    y <- substr(x,i,i)
+    if (y == "("){
+      if (substr(x,i-1,i-1) == "c" ){ #take the position
+        start <- c(start, i + 1)
+        c1_open <- TRUE
+      } 
+      if (c1_open){
+        n_open <- n_open + 1
+      }
+    }
+    if (y == ")"){
+      n_open <- n_open - 1
+      if (n_open == 0){
+        end <- c(end, i-1)
+      }
+    }
+  }
+  return(list(start = start, end = end))
+}
+
 # function to convert event payoffs list into a list of strings 
 payoff2liststring <- function(input_string){
   # remove all white spaces from string
   text <- gsub("\\s+", "", input_string)
   # get location of c() inside the string
-  matches <- gregexpr("\\b[c]\\([^()]*\\)", text, perl = TRUE)
+  #matches <- gregexpr("\\b[c]\\([^()]*\\)", text, perl = TRUE)
+  matches <- extract_c_matches(text)
   # get each matching string
-  matches[[1]] <- matches[[1]] + 2
-  attr(matches[[1]], "match.length") <- attr(matches[[1]], "match.length") - 3
-  extracted_matches <- regmatches(text, matches)[[1]]
-  matches <- matches[[1]]
-  match_lengths <- attr(matches, "match.length")
-  
+
   # for each string, do the following
-  for (i in rev(seq_along(matches))) {
+  for (i in rev(1:length(matches$start))) {
     # put quotes around each element 
-    split_elements <- unlist(strsplit(extracted_matches[i], "(,)(?![^(]*\\))", perl = TRUE))
+    extracted_match <- substr(text, matches$start[i], matches$end[i])
+    split_elements <- unlist(strsplit(extracted_match, "(,)(?![^(]*\\))", perl = TRUE))
     replacement <- paste0("\"", paste0(split_elements, collapse = "\",\""), "\"")
     # replace the original text starting from the end
-    text <- substr2(text, replacement, matches[i], matches[i]+match_lengths[i]-1)
+    text <- substr2(text, replacement, matches$start[i], matches$end[i])
   }
   eval(parse(text = text))
 }
