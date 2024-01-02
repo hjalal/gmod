@@ -125,8 +125,9 @@ gmod_build.gmod_decision <- function(gmod_obj){
   model_obj <- add_outcome_info(gmod_obj, model_obj)
   model_obj <- add_event_info(gmod_obj, model_obj)
   model_obj <- add_payoffs(gmod_obj, model_obj)
-  model_obj <- add_outcome_probs(gmod_obj, model_obj)
-  #model_obj <- add_event_probs(gmod_obj, model_obj)
+  #model_obj <- add_event_payoffs(gmod_obj, model_obj)
+  # adding stirng equations 
+  model_obj <- add_decision_eqns(gmod_obj, model_obj)
   class(model_obj) <- "gmod_decision"
   return(model_obj)
   #print(model_obj)
@@ -136,6 +137,7 @@ gmod_parse.gmod_decision <- function(model_struc, params = NULL){
   # for Decison structure, parse P and Payoffs 
   model_num_str <- model_struc
   decisions <- model_struc$decisions
+  events <- model_struc$events
   for (decision in decisions){
     model_num_str$P[[decision]] <- parse_object(model_struc$P[[decision]])
     for (payoff in model_struc$payoff_names){
@@ -143,6 +145,16 @@ gmod_parse.gmod_decision <- function(model_struc, params = NULL){
         parse_object(model_struc$Payoffs[[payoff]][[decision]])
     }
   }
+  for (event in events){
+    # Event prop
+    model_num_str$event_prop[[event]] <- parse_object(model_struc$event_prop[[event]])
+    # Event payoffs
+    for (payoff in model_struc$payoff_names){
+      temp_mat <- parse_object(model_struc$Event_payoffs[[payoff]][[event]])
+      temp_mat[is.na(temp_mat)] <- 0
+      model_num_str$Event_payoffs[[payoff]][[event]] <- temp_mat
+    } # end payoff
+  } # end event
   class(model_num_str) <- "gmod_decision"
   return(model_num_str)
   # 
@@ -152,19 +164,34 @@ gmod_evaluate.gmod_decision <- function(model_num_struc){
   decisions <- model_num_struc$decisions
   n_payoffs <- model_num_struc$n_payoffs
   n_decisions <- model_num_struc$n_decisions
-  
+  events <- model_num_struc$events
   model_results <- model_num_struc #list()
-  mat_summary <- matrix(0, nrow = n_decisions, ncol = n_payoffs, dimnames = list(decisions, payoffs))
+  mat_outcome_payoffs <- matrix(0, nrow = n_decisions, ncol = n_payoffs, dimnames = list(decisions, payoffs))
   
   for (decision in decisions){
     for (payoff in payoffs){
-      mat_summary[decision, payoff] <- 
+      mat_outcome_payoffs[decision, payoff] <- 
         matrix(model_num_struc$Payoffs[[payoff]][[decision]], nrow = 1) %*% 
         matrix(model_num_struc$P[[decision]], ncol = 1)
-      
     } # end payoffs
   } # end decision
-  model_results$Summary <- mat_summary
+  model_results$Outcome_payoffs <- mat_outcome_payoffs
+  
+  # Event payoffs 
+  mat_event_payoffs <- matrix(0, nrow = n_decisions, ncol = n_payoffs, 
+                              dimnames = list(decisions, payoffs))
+  
+    for (payoff in payoffs){
+      temp_mat <- 0
+      for (event in events){
+     # compute event rewards = p_event*event_payoff
+      temp_mat <- temp_mat + model_num_struc$event_prop[[event]] * 
+        model_num_struc$Event_payoffs[[payoff]][[event]]
+      } # end event
+      mat_event_payoffs[,payoff] <- colSums(temp_mat)
+    } # end payoffs
+  model_results$Events_payoffs <- mat_event_payoffs
+  model_results$Summary <- mat_outcome_payoffs + mat_event_payoffs
   return(model_results)
 }
 
@@ -207,7 +234,12 @@ add_payoffs <- function(gmod_obj, model_obj){
   return(model_obj) 
 }
 
-add_outcome_probs <- function(gmod_obj, model_obj){
+# add_event_payoffs <- function(gmod_obj, model_obj){
+#   
+# }
+
+# adds all equations to object
+add_decision_eqns <- function(gmod_obj, model_obj){
   outcomes <- model_obj$outcomes
   n_outcomes <- model_obj$n_outcomes
   events <- model_obj$events
@@ -249,16 +281,34 @@ add_outcome_probs <- function(gmod_obj, model_obj){
     for (event in events){
       event_values <- events_df$values[events_df$event == event]
       n_values <- length(event_values)
-      model_obj$event_prop[[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
-                                              dimnames = list(event_values, model_obj$decisions))
+      if (is.null(model_obj$event_prop[[event]])){
+        model_obj$event_prop[[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
+                                                dimnames = list(event_values, model_obj$decisions))
+      }
       for (event_value in event_values){
         # exclude rows where selected event has other values 
-        sel_events_df <- events_df[!(events_df$event == event & events_df$value != event_value)]
-        p_event_formula <- get_prob_chain(gmod_obj, sel_events_df, end_state = event)
+        sel_events_df <- events_df[!(events_df$event == event & events_df$value != event_value),]
+        end_state <- sel_events_df$results[sel_events_df$event == event]
+        if (length(end_state) != 1){
+          stop(paste("results of event",event,"is none or not unique:", end_state))
+        }
+        p_event_formula <- get_prob_chain(gmod_obj, sel_events_df, end_state = end_state)
         p_event_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_event_formula)
         model_obj$event_prop[[event]][event_value, decision] <- p_event_formula
+        
+        # Add Event Payoffs 
+        for (payoff_name in payoff_names){
+          event_payoff_formula <- sel_events_df[[payoff_name]][sel_events_df$event == event & sel_events_df$value == event_value]
+          event_payoff_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), event_payoff_formula)
+          # assign values to the matrix
+          if (is.null(model_obj$Event_payoffs[[payoff_name]][[event]])){
+            model_obj$Event_payoffs[[payoff_name]][[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
+                                                                      dimnames = list(event_values, model_obj$decisions))
+          }
+          model_obj$Event_payoffs[[payoff_name]][[event]][event_value, decision] <- event_payoff_formula
+        }
       } # end event value
-    } # end event values 
+    } # end events 
   } # end decision
   return(model_obj)
 }
@@ -494,15 +544,21 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   gmod_obj
 }
 
-event_mapping <- function(event, values, results, probs){
+event_mapping <- function(event, values, results, probs, payoffs=NULL){
   # events are the links that can either go to states or other events
   input_string <- deparse(substitute(probs))
+  if(is.null(payoffs)){
+    payoffs_string <- ""
+  } else {
+    payoffs_string <- deparse(substitute(payoffs))
+  }
   #input_string <- as.list(match.call())$probs
   list(type = "event", 
        event = event, 
        values = values, 
        results = results, 
-       probs = probs2string(input_string)
+       probs = probs2string(input_string),
+       payoffs = payoffs_string
   )
 }
 initial_probs <- function(states, probs){
@@ -624,12 +680,27 @@ expand_list <- function(original_list, output = "df") {
 # building transition prob matrix logic =======
 get_event_df <- function(gmod_obj){
   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event") 
+  event_df_list <- list()
   for (i in 1:length(event_layers)){
-    event_layers[[i]] <- event_layers[[i]] %>% as.data.frame() %>% mutate(values = as.character(values)) 
-  } 
-  event_layers <- bind_rows(event_layers) 
-  event_layers$id <- 1:nrow(event_layers)
-  return(event_layers)
+    temp_df <- event_layers[[i]] %>% 
+      as.data.frame() %>% 
+      mutate(values = as.character(values)) %>%
+      select(-payoffs) 
+    # process payoffs separately for each layer
+    payoffs_string <- event_layers[[i]]$payoffs 
+    if (payoffs_string == ""){
+      # empty string
+    } else {
+      payoffs <- payoff2liststring(payoffs_string)
+      for (j in 1:length(payoffs)){
+        temp_df[[names(payoffs)[j]]] <- payoffs[[j]]
+      }
+    }
+    event_df_list[[i]] <- temp_df
+  }
+  event_df <- bind_rows(event_df_list) %>% 
+    mutate(id = row_number())
+  return(event_df)
 }
 
 
@@ -781,20 +852,48 @@ probs2string <- function(input_string) {
   return(y)
 }
 
+# function to convert event payoffs list into a list of strings 
+payoff2liststring <- function(input_string){
+  # remove all white spaces from string
+  text <- gsub("\\s+", "", input_string)
+  # get location of c() inside the string
+  matches <- gregexpr("\\b[c]\\([^()]*\\)", text, perl = TRUE)
+  # get each matching string
+  matches[[1]] <- matches[[1]] + 2
+  attr(matches[[1]], "match.length") <- attr(matches[[1]], "match.length") - 3
+  extracted_matches <- regmatches(text, matches)[[1]]
+  matches <- matches[[1]]
+  match_lengths <- attr(matches, "match.length")
+  
+  # for each string, do the following
+  for (i in rev(seq_along(matches))) {
+    # put quotes around each element 
+    split_elements <- unlist(strsplit(extracted_matches[i], "(,)(?![^(]*\\))", perl = TRUE))
+    replacement <- paste0("\"", paste0(split_elements, collapse = "\",\""), "\"")
+    # replace the original text starting from the end
+    text <- substr2(text, replacement, matches[i], matches[i]+match_lengths[i]-1)
+  }
+  eval(parse(text = text))
+}
+
 
 gmod_parse <- function(x, ...) UseMethod("gmod_parse")
 gmod_parse.gmod_markov <- function(model_struc, params = NULL){
   # for Markov structure, parse P, p0 and Payoffs and replace
   model_num_str <- model_struc
   decisions <- model_struc$decisions
+  events <- model_struc$events
   for (decision in decisions){
     model_num_str$p0[[decision]] <- parse_object(model_struc$p0[[decision]])
     model_num_str$P[[decision]] <- parse_object(model_struc$P[[decision]])
     for (payoff in model_struc$payoff_names){
       model_num_str$Payoffs[[payoff]][[decision]] <- 
         parse_object(model_struc$Payoffs[[payoff]][[decision]])
-    }
-  }
+    } # end payoffs
+  } # end decisions
+  for (event in events){
+    model_num_str$event_prop[[event]] <- parse_object(model_struc$event_prop[[event]])
+  } # end event
   class(model_num_str) <- "gmod_markov"
   return(model_num_str)
 }

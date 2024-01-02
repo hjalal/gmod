@@ -76,11 +76,11 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   #events("DIE", "PROGRESS") +
   discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.015, 0.015)) + 
   initial_probs(states = c("Moderate", "Severe"), probs = c(0.5,0.5)) +  
-  event_mapping(name = "DIE",  
+  event_mapping(event = "DIE",  
             values = c(T, F), 
             results = c("Dead", "PROGRESS"), 
             probs = c(pDie(state), Inf)) +
-  event_mapping(name = "PROGRESS", 
+  event_mapping(event = "PROGRESS", 
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
@@ -113,11 +113,11 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
   initial_probs(states = c("Moderate", "Severe"), probs = c(0.3, Inf)) +  
-  event_mapping(name = "DIE",  
+  event_mapping(event = "DIE",  
             values = c(T, F), 
             results = c("Dead", "PROGRESS"), 
             probs = c(pDie(state, cycle), Inf)) +
-  event_mapping(name = "PROGRESS", 
+  event_mapping(event = "PROGRESS", 
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
@@ -149,11 +149,11 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
-  event_mapping(name = "DIE",  
+  event_mapping(event = "DIE",  
             values = c(T, F), 
             results = c("Dead", "PROGRESS"), 
             probs = c(pDie(state, cycle_in_state('Severe')), Inf)) +
-  event_mapping(name = "PROGRESS", 
+  event_mapping(event = "PROGRESS", 
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
@@ -185,11 +185,11 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   states("Moderate", "Severe", "Dead") + 
   events("DIE", "PROGRESS") +
   initial_probs(states = "Moderate", probs = 1) +  
-  event_mapping(name = "DIE",  
+  event_mapping(event = "DIE",  
             values = c(T, F), 
             results = c("Dead", "PROGRESS"), 
             probs = c(pDie(state, cycle), Inf)) +
-  event_mapping(name = "PROGRESS", 
+  event_mapping(event = "PROGRESS", 
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
