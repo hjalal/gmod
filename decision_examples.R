@@ -247,7 +247,7 @@ p_comp <- function(decision, HVE){
   if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
 }
 cHVE <- function(decision){
-  if (decision == "biopsy") c_tx else 0
+  if (decision == "Biopsy") c_tx else 0
 }
 
 cost <- function(decision, outcome){ 
@@ -297,6 +297,5 @@ model_res <- gmod_evaluate(model_num_struc)
 
 print(model_res)
 
-matches <- extract_c_matches("list(cost=c(cDie(decision),cNotDie),effectiveness=c(eDie,eNotDie))")
 # Doubilet example? ==========
 

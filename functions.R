@@ -184,15 +184,15 @@ gmod_evaluate.gmod_decision <- function(model_num_struc){
   mat_event_payoffs <- matrix(0, nrow = n_decisions, ncol = n_payoffs, 
                               dimnames = list(decisions, payoffs))
   
-    for (payoff in payoffs){
-      temp_mat <- 0
-      for (event in events){
-     # compute event rewards = p_event*event_payoff
+  for (payoff in payoffs){
+    temp_mat <- 0
+    for (event in events){
+      # compute event rewards = p_event*event_payoff
       temp_mat <- temp_mat + model_num_struc$event_prop[[event]] * 
         model_num_struc$Event_payoffs[[payoff]][[event]]
-      } # end event
-      mat_event_payoffs[,payoff] <- colSums(temp_mat)
-    } # end payoffs
+    } # end event
+    mat_event_payoffs[,payoff] <- colSums(temp_mat)
+  } # end payoffs
   model_results$Event_payoff_summary <- mat_event_payoffs
   model_results$Overall_summary <- mat_outcome_payoffs + mat_event_payoffs
   return(model_results)
@@ -335,14 +335,27 @@ gmod_build.gmod_markov <- function(gmod_obj){
   events_df <- get_event_df(gmod_obj)
   model_obj$events <- unique(events_df$event)
   model_obj$n_events <- length(model_obj$events)
+  events_with_payoffs_df <- get_events_with_payoffs_df(events_df)
   model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
   model_obj <- add_payoffs(gmod_obj, model_obj)
   model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
+  model_obj <- add_event_prop_eqns(gmod_obj, model_obj, events_df, events_with_payoffs_df)
+  #model_obj <- add_markov_event_payoff_eqns(gmod_obj, model_obj, events_df)
+  
   class(model_obj) <- "gmod_markov"
   return(model_obj)
   #print(model_obj)
 }
 
+get_events_with_payoffs_df <- function(df){
+  # Columns to check for NAs
+  col_names <- colnames(df)
+  keep_cols <- c("type", "event", "values", "results", "probs","id")
+  columns_to_check <- col_names[!(col_names %in% keep_cols)]  # Specify columns here
+  
+  # Exclude rows with NA values in all specified columns
+  df[!apply(df[columns_to_check], 1, function(row) all(is.na(row)|row=="NA"|row==0)), ]
+}
 
 add_decision_info <- function(gmod_obj, model_obj){
   # retrieve states layer
@@ -477,6 +490,9 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   return(model_obj)
 }
 
+
+
+
 add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
   states <- model_obj$states
   #n_states <- model_obj$n_states
@@ -527,6 +543,88 @@ add_markov_payoff_eqns <- function(gmod_obj, model_obj, events_df){
   return(model_obj)
 }
 
+#proportion of events by decision state and cycle if available
+add_event_prop_eqns <- function(gmod_obj, model_obj, events_df, events_with_payoffs_df){
+  states <- model_obj$states
+  #n_states <- model_obj$n_states
+  states_expanded <- model_obj$states_expanded
+  n_states_expanded <- length(states_expanded)
+  tunnel_states <- model_obj$tunnel_states
+  n_cycles <- gmod_obj$n_cycles
+  #events <- model_obj$events
+  #n_events <- model_obj$n_events
+  # get expanded states 
+  payoffs <- model_obj$payoffs
+  payoff_names <- names(payoffs)
+  
+  # add events here
+  for (i in 1:nrow(events_with_payoffs_df)){
+    # get the events and values that have payoffs
+    event <- events_with_payoffs_df$event[i]
+    event_value <- events_with_payoffs_df$values[i]
+    
+    for (payoff in payoff_names){
+      if (payoff %in% colnames(events_with_payoffs_df)){
+        event_payoff_input <- events_with_payoffs_df[i,payoff]
+        if (!is.na(event_payoff_input) & event_payoff_input!=0 & event_payoff_input!="NA"){
+          for (decision in model_obj$decisions){
+            
+            # initialization based on cycle dependence   
+            
+            if (model_obj$is_cycle_dep){ # array
+              n_cycles <- gmod_obj$n_cycles
+              cycle <- 1:n_cycles
+              #cycle <- cycle_range # try vector format!
+              cycles <- paste0("cycle", cycle)
+              # change n_states to n_states_expanded
+              model_obj$event_payoff[[payoff]][[event]][[event_value]][[decision]] <- matrix("0", nrow = n_cycles, ncol = n_states_expanded, 
+                                                                                             dimnames = list(cycles, states_expanded))
+            } else { # matrix
+              model_obj$event_payoff[[payoff]][[event]][[event_value]][[decision]] <- rep("0", n_states_expanded)
+              names(model_obj$event_payoff[[payoff]][[event]][[event_value]][[decision]]) <- states_expanded
+            }
+            
+            # iterate for each state
+            for (state_expanded in states_expanded){
+              state_comp <- tunnel2state(state_expanded)
+              state <- state_comp[1]
+              state_idx <- as.integer(state_comp[2])
+              
+              # end events and values
+              # exclude rows where selected event has other values 
+              sel_events_df <- events_df[!(events_df$event == event & events_df$value != event_value),]
+              end_state <- sel_events_df$results[sel_events_df$event == event]
+              if (length(end_state) != 1){
+                stop(paste("results of event",event,"is none or not unique:", end_state))
+              }
+              p_event_formula <- get_prob_chain(gmod_obj, sel_events_df, end_state = end_state)
+              # will also allow for event payoffs to also be functions of state, decision, cycle 
+              p_event_formula <- paste0("(", event_payoff_input, ")*(", p_event_formula, ")")
+              p_event_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_event_formula)
+              p_event_formula <- gsub("\\bstate\\b", paste0("'", state, "'"), p_event_formula)
+              
+              # write error trap if state within cycle_in_state doesn't match state
+              p_event_formula <- gsub("cycle_in_state\\([^)]+\\)", paste0("cycle_in_state=",state_idx), p_event_formula)
+              
+              #if (!(state %in% tunnel_states & state == dest & dest_idx != state_idx+1)){ #otherwise keep at "0"
+              if (model_obj$is_cycle_dep){ # array
+                p_event_formula <- sapply(cycle, function(x) gsub("\\bcycle\\b", paste0("cycle=",x), p_event_formula))
+                model_obj$event_payoff[[payoff]][[event]][[event_value]][[decision]][, state_expanded] <- p_event_formula
+              } else {
+                model_obj$event_payoff[[payoff]][[event]][[event_value]][[decision]][state_expanded] <- p_event_formula
+              }
+              #}
+              
+            } # end origin state
+          } # end decision
+        } # end indivdual payoff condition that is not 0
+      } # end payoff column condition
+    } # end payoffs
+  } # end rows for events with payoffs
+  
+  return(model_obj)
+}
+
 retrieve_layer_by_type <- function(gmod_obj, type){
   # Use lapply to filter the list based on the condition
   result <- lapply(gmod_obj$layers, function(x) if (x$type == type) x else NULL)
@@ -550,11 +648,11 @@ retrieve_layer_by_type <- function(gmod_obj, type){
 event_mapping <- function(event, values, results, probs, payoffs=NULL){
   # events are the links that can either go to states or other events
   input_string <- paste0(deparse(substitute(probs)), collapse = "")
-
-    payoffs_string <- paste0(deparse(substitute(payoffs)), collapse = "")
-    if (payoffs_string == "NULL"){
-      payoffs_string <- ""
-    }
+  
+  payoffs_string <- paste0(deparse(substitute(payoffs)), collapse = "")
+  if (payoffs_string == "NULL"){
+    payoffs_string <- ""
+  }
   #input_string <- as.list(match.call())$probs
   list(type = "event", 
        event = event, 
@@ -892,7 +990,7 @@ payoff2liststring <- function(input_string){
   #matches <- gregexpr("\\b[c]\\([^()]*\\)", text, perl = TRUE)
   matches <- extract_c_matches(text)
   # get each matching string
-
+  
   # for each string, do the following
   for (i in rev(1:length(matches$start))) {
     # put quotes around each element 
@@ -920,9 +1018,9 @@ gmod_parse.gmod_markov <- function(model_struc, params = NULL){
         parse_object(model_struc$Payoffs[[payoff]][[decision]])
     } # end payoffs
   } # end decisions
-  for (event in events){
-    model_num_str$event_prop[[event]] <- parse_object(model_struc$event_prop[[event]])
-  } # end event
+  #for (event in events){
+  #  model_num_str$event_prop[[event]] <- parse_object(model_struc$event_prop[[event]])
+  #} # end event
   class(model_num_str) <- "gmod_markov"
   return(model_num_str)
 }
