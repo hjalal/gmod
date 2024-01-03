@@ -118,7 +118,11 @@ prev_event_value <- function(events_df, probs, chain_ids){
       replacement_string <- character()
       for (event in clean_string){
         value <- events_df$values[events_df$event==event & events_df$id %in% chain_ids]
-        if (length(value)==0) stop(paste(event, "doesn't appear to be a prior event."))
+        if (length(value)==0) {
+          warning(paste("if event ", event, "doesn't have a prior event, a 0 is returned. 
+                         Check if this is the intended behavior.  This is not necessarily an error."))
+          value <- 0
+        }
         if (length(value)>1) stop(paste(event, ": There are multiple prior events with the same name."))
         replacement_string <- c(replacement_string, paste0("prev_event(\"",event,"\"=",value,")"))
       }

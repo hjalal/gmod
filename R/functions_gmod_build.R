@@ -54,9 +54,9 @@ decisions <- function(...){
 states <- function(...){
   list(type = "states", states = c(...))
 }
-# outcomes <- function(...){
-#   list(type = "outcomes", outcomes = c(...))
-# }
+outcomes <- function(...){
+  list(type = "outcomes", outcomes = c(...))
+}
 payoffs <- function(...){
   input_string <- as.list(match.call())
   list(type = "payoffs", payoffs = input_string[-1])
