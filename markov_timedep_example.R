@@ -1,7 +1,8 @@
 # Markov with n_cycles# 
 rm(list = ls())
-source("functions.R")
+#source("functions.R")
 library(tidyverse)
+library(gmod)
 # Parameters:
 pProgNoTrt <-	0.100
 rrProgTrtA<-	0.8
@@ -108,10 +109,11 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 2) +
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             #probs = c((state=="Moderate")*rrProg(decision)*pProgNoTrt, Inf))
-            probs = c(pProg(state, decision), Inf)) + 
+            probs = c(pProg(state, decision, ), Inf)) + 
   #probs = c(pProg(state, decision), Inf)) + 
   payoffs(cost = cost(state), 
           effectiveness = effectiveness(state))
+
 tunnel_states(mygmod)
 is_cycle_dep(mygmod)
 model_struc <- gmod_build(mygmod)

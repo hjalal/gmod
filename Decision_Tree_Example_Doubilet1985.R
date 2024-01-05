@@ -1,4 +1,5 @@
-# Doubilet 1985 example
+#  Doubilet 1985 example ========
+## only Treat and NoTrt strategies  ========
 rm(list = ls())
 source("functions.R")
 library(tidyverse)
@@ -85,7 +86,43 @@ model_res <- gmod_evaluate(model_num_struc)
 
 print(model_res)
 
-# Doubilet's biopsy strategy ===========
+
+
+
+# Doubilet's all strategies ===========
+## only Treat and NoTrt strategies  ========
+rm(list = ls())
+source("functions.R")
+library(tidyverse)
+
+pDieBiopsy <- 0.004
+pSevBiopsy <- 0.01
+pModBiopsy <- 0.03
+sensBiopsy <- 0.95
+specBiopsy <- 0.99
+pHSE <- 0.4 #overall
+
+pDieHSE <- .7
+pSevHSE <- .333
+pModHSE <- .5
+
+fDie <- .37
+fSev <- .2
+fMod <- .2
+
+pDieNoHSE <- .18
+pSevNoHSE <- .122
+pModNoHSE <- .139
+
+addProbDie <- .004
+addProbSev <- .01
+addProbMod <- .02
+
+uDie <- 0
+uSev <- 0.02
+uMod <- .8
+uMld <- 1
+
 ## functions =======
 pDie <- function(HSE, decision, biopRes){
   pDieRx <- HSE*(1-fDie)*pDieHSE + (!HSE)*(pDieNoHSE+addProbDie-pDieNoHSE*addProbDie)
@@ -189,7 +226,7 @@ probs1 <- c(a1,a2)
 utils1 <- c(uDie, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld)
 utils1_red <- c(uDie, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld)
 probs1 %*% utils1
-probs1 %*% utils1_red
+probs1 %*% utils1_red # doesn't multiply the outcome utilities by biopsy sequalae
   
 probs2 <- c(prod(c(pHSE, (1 - fDie) * pDieHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, (1 - fSev) * pSevHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, 1 - (1 - fSev) * pSevHSE, (1 - fMod) * pModHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, 1 - (1 - fSev) * pSevHSE, 1 - (1 - fMod) * pModHSE)), prod(c(1 - pHSE, pDieNoHSE + addProbDie - pDieNoHSE * addProbDie)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), pSevNoHSE + addProbSev - pSevNoHSE * addProbSev)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), 1 - (pSevNoHSE + addProbSev - pSevNoHSE * addProbSev), pModNoHSE + addProbMod - pModNoHSE * addProbMod)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), 1 - (pSevNoHSE + addProbSev - pSevNoHSE * addProbSev), 1 - (pModNoHSE + addProbMod - pModNoHSE * addProbMod))))
 util2 <-  c(uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld)
@@ -203,3 +240,4 @@ probs2 %*% util2
 probs3 <- c(prod(c(pHSE, pDieHSE)), prod(c(pHSE, 1 - pDieHSE, pSevHSE)), prod(c(pHSE, 1 - pDieHSE, 1 - pSevHSE, pModHSE)), prod(c(pHSE, 1 - pDieHSE, 1 - pSevHSE, 1 - pModHSE)), prod(c(1 - pHSE, pDieNoHSE)), prod(c(1 - pHSE, 1 - pDieNoHSE, pSevNoHSE)), prod(c(1 - pHSE, 1 - pDieNoHSE, 1 - pSevNoHSE, pModNoHSE)), prod(c(1 - pHSE, 1 - pDieNoHSE, 1 - pSevNoHSE, 1 - pModNoHSE))) 
 probs3
 # 0.28000000 0.03996000 0.04002000 0.04002000 0.10800000 0.06002400 0.06004466 0.37193134
+probs3 %*% util2
