@@ -1,5 +1,7 @@
 # Helper functions
-
+.onAttach <- function(libname, pkgname) {
+  packageStartupMessage('To get started with GMOD, please check the vignettes by typing browseVignettes(package = "gmod").')
+}
 
 get_named_pairs <- function(...) {
   args <- list(...)
