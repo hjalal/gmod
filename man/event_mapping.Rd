@@ -28,5 +28,5 @@ event_mapping(event = "event_progress",
 values = c(TRUE,FALSE), 
 results = c("Severe",curr_state()), 
 probs = c(p_progress_function(state), Inf), 
-payoffs = list(cost = c(cProgress, cNotProgress))
+payoffs = list(cost = c(cProgress, cNotProgress)))
 }

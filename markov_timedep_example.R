@@ -67,8 +67,7 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
             results = c("Severe", curr_state()), 
             probs = c(pProg(state, decision), Inf)) + 
   payoffs(cost = cost(state), 
-          effectiveness = effectiveness(state), 
-          LE = LE(cycle))
+          effectiveness = effectiveness(state))
 tunnel_states(mygmod)
 is_cycle_dep(mygmod)
 model_struc <- gmod_build(mygmod)

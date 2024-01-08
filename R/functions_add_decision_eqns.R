@@ -7,71 +7,71 @@ add_decision_eqns <- function(gmod_obj, model_obj){
   n_events <- model_obj$n_events
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
+
+  decisions <- data.frame(decision = model_obj$decisions)
   
   payoffs <- model_obj$payoffs
   payoff_names <- names(payoffs)
   
-  vec_p_raw <- vec_p_stay <- rep("0", n_outcomes)
-  names(vec_p_raw) <- names(vec_p_stay) <- outcomes
+  
+  gmod_obj$path_id <- 0
+  gmod_obj$path_df_list <- list()
+  
   for (outcome in outcomes){
-    vec_p_raw[outcome] <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
+    gmod_obj <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
     #vec_p_stay[outcome] <- get_prob_chain(gmod_obj, events_df, end_outcome = "curr_outcome")
   }
+  path_df <- bind_rows(gmod_obj$path_df_list) %>% 
+    inner_join(events_df, by = c("chain_id" = "id"))
   
-  # add "curr_outcome" ones as well here to form P_raw as a matrix
-  for (decision in model_obj$decisions){
-    model_obj$P[[decision]] <- rep("0", n_outcomes)
-    names(model_obj$P[[decision]]) <- outcomes
-    # iterate through payoffs
-    for (payoff_name in payoff_names){
-      model_obj$Outcome_payoffs[[payoff_name]][[decision]] <- rep("0", n_outcomes)
-      names(model_obj$Outcome_payoffs[[payoff_name]][[decision]]) <- outcomes
-    }
-    for (outcome in outcomes){
-      p_trans_formula <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
-      #p_trans_formula <- gsub("\\bstate\\b", state, p_trans_formula)
-      p_trans_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_trans_formula)
-      model_obj$P[[decision]][outcome] <- p_trans_formula
-      for (payoff_name in payoff_names){
-        payoff_formula <- paste0(deparse(payoffs[[payoff_name]]), collapse = "")
-        payoff_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), payoff_formula)
-        payoff_formula <- gsub("\\outcome\\b", paste0("'",outcome,"'"), payoff_formula)
-        model_obj$Outcome_payoffs[[payoff_name]][[decision]][outcome] <- payoff_formula
-      } # end payoffs 
-    } # end outcome
-    for (event in events){
-      event_values <- events_df$values[events_df$event == event]
-      n_values <- length(event_values)
-      if (is.null(model_obj$event_prop[[event]])){
-        model_obj$event_prop[[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
-                                                dimnames = list(event_values, model_obj$decisions))
-      }
-      for (event_value in event_values){
-        # exclude rows where selected event has other values 
-        sel_events_df <- events_df[!(events_df$event == event & events_df$value != event_value),]
-        end_state <- sel_events_df$results[sel_events_df$event == event]
-        if (length(end_state) != 1){
-          stop(paste("results of event",event,"is none or not unique:", end_state))
-        }
-        p_event_formula <- get_prob_chain(gmod_obj, sel_events_df, end_state = end_state)
-        p_event_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), p_event_formula)
-        model_obj$event_prop[[event]][event_value, decision] <- p_event_formula
-        
-        # Add Event Payoffs 
-        for (payoff_name in payoff_names){
-          if(!is.null(sel_events_df[[payoff_name]])){ 
-            event_payoff_formula <- sel_events_df[[payoff_name]][sel_events_df$event == event & sel_events_df$value == event_value]
-            event_payoff_formula <- gsub("\\bdecision\\b", paste0("'",decision,"'"), event_payoff_formula)
-            # assign values to the matrix
-            if (is.null(model_obj$Event_payoffs[[payoff_name]][[event]])){
-              model_obj$Event_payoffs[[payoff_name]][[event]] <- matrix(0, nrow = n_values, ncol = model_obj$n_decisions, 
-                                                                        dimnames = list(event_values, model_obj$decisions))
-            }
-            model_obj$Event_payoffs[[payoff_name]][[event]][event_value, decision] <- event_payoff_formula
-          } # end of is.null payoff
-        } # end payoff name
-      } # end event value
-    } # end events 
-  } # end decision
+
+  path_df1 <- path_df %>% crossing(decisions) %>% 
+    rowwise() %>% 
+    mutate(probs = gsub("\\bdecision\\b", paste0("'",decision,"'"), probs))
+  # deal with prev_event() 
+  path_df1_1 <- path_df1 %>% 
+    pivot_wider(names_from = event, values_from = values)
+  
+  
+  # collapse chain probs and create list of all events and values
+  path_df2 <- path_df1_1 %>% 
+    ungroup() %>%
+    group_by(decision, outcome, path_id) %>% 
+    summarize(probs = paste0("(",probs, ")",collapse = "*"), 
+              across(events, ~ event_value(.x)))
+  
+  # replace event names in probabilities with event name value pairs 
+  path_df2$probs <- replace_event_with_value(x = path_df2$probs, input_df = path_df2, events = events)
+  
+  # add payoff formula
+  for (payoff_name in payoff_names){
+    path_df2[[payoff_name]] <- paste0(deparse(payoffs[[payoff_name]]), collapse = "")
+    for (i in 1:nrow(path_df2)){
+      path_df2[[payoff_name]][i] <- gsub("\\bdecision\\b", paste0("'",path_df2$decision[i],"'"), path_df2[[payoff_name]][i])
+      path_df2[[payoff_name]][i] <- gsub("\\boutcome\\b", paste0("'",path_df2$outcome[i],"'"), path_df2[[payoff_name]][i])
+    }      
+    path_df2[[payoff_name]] <- replace_event_with_value(x = path_df2[[payoff_name]], input_df = path_df2, events = events)
+  }
+  model_obj$model_formulae <- path_df2
   return(model_obj)
+}
+
+
+event_value <- function(x){
+  if(all(is.na(x))){
+    "FALSE"
+  } else {
+    unique(na.omit(x))
+  }
+}
+
+
+replace_event_with_value <- function(x, input_df, events){
+  n <- nrow(input_df)
+  for (event in events){
+    for (i in 1:n){
+      x[i] <- gsub(paste0("\\b", event, "\\b"), paste0(event, "=", input_df[i,event]), x[i])
+    }
+  }
+  return(x)
 }

@@ -3,6 +3,8 @@
 S3method("+",gmod_class)
 S3method(gmod_build,gmod_decision)
 S3method(gmod_build,gmod_markov)
+S3method(gmod_evaluate,gmod_decision)
+S3method(gmod_evaluate,gmod_markov)
 S3method(gmod_parse,gmod_decision)
 S3method(gmod_parse,gmod_markov)
 export(curr_state)

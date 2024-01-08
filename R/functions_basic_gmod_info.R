@@ -73,7 +73,7 @@ retrieve_layer_by_type <- function(gmod_obj, type){
   result <- lapply(gmod_obj$layers, function(x) if (x$type == type) x else NULL)
   # Remove NULL elements from the list
   lyr<-Filter(Negate(is.null), result)
-  if (length(lyr)==1){
+  if (length(lyr)==1 & type != "event"){
     lyr <- lyr[[1]] #only select the first element if there is no more
   }
   lyr

@@ -127,6 +127,7 @@ uMld <- 1
 pDie <- function(HSE, decision, biopRes){
   pDieRx <- HSE*(1-fDie)*pDieHSE + (!HSE)*(pDieNoHSE+addProbDie-pDieNoHSE*addProbDie)
   pDieNoRx <- HSE*pDieHSE + (!HSE)*pDieNoHSE
+  
   (decision=="NoBiopsy_NoTreat")*pDieNoRx + 
     (decision=="NoBiopsy_Treat")*pDieRx +
     (decision=="BrainBiopsy")*(biopRes*pDieRx + (!biopRes)*pDieNoRx)

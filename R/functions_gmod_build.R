@@ -59,7 +59,8 @@ gmod <- function(model_type, n_cycles = 50) {
 #' values = c(TRUE,FALSE), 
 #' results = c("Severe",curr_state()), 
 #' probs = c(p_progress_function(state), Inf), 
-#' payoffs = list(cost = c(cProgress, cNotProgress))
+#' payoffs = list(cost = c(cProgress, cNotProgress)))
+
 event_mapping <- function(event, values, results, probs, payoffs=NULL){
   # events are the links that can either go to states or other events
   input_string <- paste0(deparse(substitute(probs)), collapse = "")

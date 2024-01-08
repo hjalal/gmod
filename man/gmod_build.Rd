@@ -15,6 +15,3 @@ a gmod object containing the equations for the Markov model
 \description{
 Builds a Markov model
 }
-\examples{
-gmod_build(mygmod)
-}

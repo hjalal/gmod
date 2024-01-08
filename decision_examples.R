@@ -1,7 +1,23 @@
 # Decision Tree ========
 rm(list = ls())
-source("functions.R")
 library(tidyverse)
+
+pSick <- function(decision){
+  if (decision == "A") 0.5 else 0.7
+}
+mygmod <- gmod(model_type = "Decision") + 
+  decisions("A", "B") + 
+  event_mapping(event = "event_disease",  
+                values = c(T, F), 
+                results = c("Sick", "Die"), 
+                probs = c(pSick(decision), Inf)) 
+
+model_struc <- gmod_build(mygmod)
+model_struc
+model_num_struc <- gmod_parse(model_struc, params = NULL)
+model_res <- gmod_evaluate(model_num_struc)
+model_res
+
 
 ## rock climber example ======= 
 pDie <- function(decision){
@@ -126,7 +142,7 @@ print(model_res)
 
 ## HVE/OVE example with prev_event_dependence ========
 rm(list = ls())
-source("functions.R")
+#source("functions.R")
 library(tidyverse)
 
 
@@ -187,7 +203,7 @@ mygmod <- gmod(model_type = "Decision") +
   event_mapping(event = "get_comp", 
                 values = c(T, F),
                 results = c("comp", "no_comp"),
-                probs = c(p_comp(decision, prev_event("HVE")), Inf))
+                probs = c(p_comp(decision, HVE), Inf))
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
@@ -288,8 +304,8 @@ mygmod <- gmod(model_type = "Decision") +
                 results = c("OVE_comp", "no_OVE_comp"),
                 probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
   #payoffs(cost = cost(decision, outcome, prop_with_event("HVE"=TRUE, decision)), 
-  payoffs(cost = cost(decision, outcome),  
-          effectiveness = effectiveness(decision, outcome))
+  payoffs(cost = cost(decision, outcome, HVE),  
+          effectiveness = effectiveness(decision, outcome, DIE))
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)

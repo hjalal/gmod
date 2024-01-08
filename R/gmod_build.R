@@ -5,7 +5,8 @@
 #' @return a gmod object containing the equations for the Markov model
 #' @export
 #' 
-#' @examples gmod_build(mygmod)
+#' @examples 
+#' gmod_build(mygmod)
 gmod_build <- function(x, ...) UseMethod("gmod_build")
 
 #' Build a Markov model structure

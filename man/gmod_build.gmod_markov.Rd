@@ -15,6 +15,3 @@ gmod structure containing formulae strings
 \description{
 takes in a gmod formula structure and returns a gmod numerical formula structure
 }
-\examples{
-gmod_build(mygmod)
-}
