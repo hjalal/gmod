@@ -54,6 +54,7 @@ add_decision_eqns <- function(gmod_obj, model_obj){
   }
   model_obj$outcome_formulae <- path_df2
   
+  
   # multiply outcomes by probabilities and aggregate by decision
   path_df3 <- path_df2 %>% 
     rowwise() %>% 
@@ -70,9 +71,10 @@ add_decision_eqns <- function(gmod_obj, model_obj){
 }
 
 
-event_value <- function(x){
+event_value <- function(x, default_na_value = "FALSE"){
   if(all(is.na(x))){
-    "FALSE"
+    default_na_value
+    #"NA" #returns NA if the event is missing
   } else {
     unique(na.omit(x))
   }
