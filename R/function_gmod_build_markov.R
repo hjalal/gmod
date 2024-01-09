@@ -86,11 +86,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
     inner_join(events_df, by = c("chain_id" = "id")) #%>% 
     #mutate(results = ifelse(results == "curr_state", dest, results))
   
-  # add payoffs ====
-  for (payoff_name in payoff_names){
-    path_df[[payoff_name]] <- deparse(model_obj$payoffs[[payoff_name]])
-  }
-  
+
   # add originating states 
   states_df <- data.frame(state = states) 
   path_df0 <- path_df %>% 
@@ -98,26 +94,50 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
     crossing(states_df) %>% 
     mutate(dest = ifelse(dest == "curr_state", state, dest)) %>% 
     rowwise() %>% 
-    mutate(across(c(probs, payoff_names), ~ gsub("\\bstate\\b", paste0("'",state,"'"), .x)))
+    mutate(probs = gsub("\\bstate\\b", paste0("'",state,"'"), probs))
+  
+  # collapse chain probs and create list of all events and values
+  path_df1 <- path_df0 %>% 
+    pivot_wider(names_from = event, values_from = values) %>% #, values_fill = "FALSE")
+    ungroup() %>%
+    group_by(state, dest, path_id) %>% 
+    summarize(probs = paste0("(",probs, ")",collapse = "*"), 
+              #across(payoff_names, ~ paste0(.x, collapse="+")), 
+              across(events, ~ event_value(.x)))
+  
+  # add payoffs ====
+  for (payoff_name in payoff_names){
+    path_df1[[payoff_name]] <- deparse(model_obj$payoffs[[payoff_name]])
+  }
+  
+  # compute weighted payoffs by probabilities 
+  path_df2 <- path_df1 %>%
+    rowwise() %>% 
+    mutate(across(payoff_names, ~ gsub("\\bstate\\b", paste0("'",state,"'"), .x)),
+           across(payoff_names, ~ paste0(probs, "*(", .x, ")")))
+  
+  
+  
+
   
   
   # deal with tunnels 
   # if there is a tunnel, loop through them and expand the state and dest columns
-  path_df1 <- path_df0
+  path_df3 <- path_df2
   tunnel_states <- model_obj$tunnel_states
-  # n <- nrow(path_df1)
+  # n <- nrow(path_df3)
   if (length(tunnel_states) > 0){
     tunnel_df <- expand.grid(state = tunnel_states, state_idx = 1:(n_cycles-1))
-    path_df1 <- path_df1 %>% 
+    path_df3 <- path_df3 %>% 
       left_join(tunnel_df, by = "state") %>% 
       #left_join(tunnel_df %>% rename(dest_idx = state_idx), by = c("dest"="state")) %>% 
       mutate(state_idx = ifelse(is.na(state_idx), 0, state_idx)) 
   } else {
-    path_df1 <- path_df1 %>% 
+    path_df3 <- path_df3 %>% 
       mutate(state_idx = 0, dest_idx = 0)
   }
   # replaces cycle_in_state with cycle_in_[STATE]=Tunnel No.
-  path_df2 <- path_df1 %>% 
+  path_df4 <- path_df3 %>% 
     mutate(across(c(probs, payoff_names), ~ gsub('cycle_in_state\\("([^"]+)"\\)', paste0("cycle_in_\\1","=",state_idx), .x)),
            dest_idx = ifelse(state == dest & state_idx > 0, state_idx + 1, 0),
            dest_idx = ifelse(state != dest & dest %in% tunnel_states, 1, dest_idx),
@@ -126,27 +146,17 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
     filter(dest_expanded %in% states_expanded)
   # dest expanded can include some unexpanded states - these can be ignored in the evaluations
   
-  # compute weighted payoffs by probabilities 
-  path_df2 <- path_df2 %>% 
-    mutate(across(payoff_names, ~ paste0("(", probs, ")*(", .x, ")")))
-  
-  # collapse chain probs and create list of all events and values
-  path_df3 <- path_df2 %>% 
-    pivot_wider(names_from = event, values_from = values) %>% #, values_fill = "FALSE")
-    ungroup() %>%
-    group_by(state_expanded, dest_expanded, path_id) %>% 
-    summarize(probs = paste0("(",probs, ")",collapse = "*"), 
-              across(payoff_names, ~ paste0(.x, collapse="+")), 
-              across(events, ~ event_value(.x)))
-  
+
   
   # replace event names in probabilities with event name value pairs 
-  path_df3$probs <- replace_event_with_value(x = path_df3$probs, input_df = path_df3, events = events)
-  
+  path_df4$probs <- replace_event_with_value(x = path_df4$probs, input_df = path_df4, events = events)
+  for (payoff_name in payoff_names){
+    path_df4[[payoff_name]] <- replace_event_with_value(x = path_df4[[payoff_name]], input_df = path_df4, events = events)
+  }
   
   # add decisions
   decisions_df <- data.frame(decision = model_obj$decisions)
-  path_df4 <- path_df3 %>% 
+  path_df5 <- path_df4 %>% 
     crossing(decisions_df) %>% 
     rowwise() %>% 
     mutate(across(c(probs, payoff_names), ~ gsub("\\bdecision\\b", paste0("'",decision,"'"), .x)))
@@ -155,27 +165,27 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   # add cycle column and parse if cycle dependent
   if (model_obj$is_cycle_dep){
     cycles_df <- data.frame(cycle = 1:n_cycles)
-    path_df4 <- path_df4 %>% 
+    path_df5 <- path_df5 %>% 
       crossing(cycles_df) %>% 
       rowwise() %>% 
       mutate(across(c(probs, payoff_names), ~ gsub("\\bcycle\\b", paste0("cycle=",cycle,""), .x)))
   }
   
   # group transition probs by originating state, dest state, decision and cycle
-  path_df5 <- path_df4 %>% 
+  path_df6 <- path_df5 %>% 
     ungroup() %>% 
     select(-events, -path_id, -payoff_names) %>% 
     group_by(across(-c(probs))) %>% 
     summarize(probs = paste0(probs, collapse="+"))
   # group payoffs by originating state, decision, cycle
-  path_df6 <- path_df4 %>% 
+  path_df7 <- path_df5 %>% 
     ungroup() %>% 
-    select(-events, -dest_expanded, -path_id, -probs) %>% 
+    select(-events, -dest_expanded, -dest, -path_id, -probs) %>% 
     group_by(across(-payoff_names)) %>% 
     summarize(across(payoff_names, ~ paste0(.x, collapse="+")))
   
-  model_obj$markov_eqns <- path_df5
-  model_obj$payoff_eqns <- path_df6
+  model_obj$markov_eqns <- path_df6
+  model_obj$payoff_eqns <- path_df7
 
   return(model_obj)
 }

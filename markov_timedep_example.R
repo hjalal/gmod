@@ -74,7 +74,7 @@ model_struc <- gmod_build(mygmod)
 View(model_struc$markov_eqns)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
 View(model_num_struc$markov_eqns)
-model_res <- gmod_evaluate(model_num_struc)
+model_res <- gmod_evaluate(model_struc, params = NULL)
 
 print(model_res)
 
@@ -118,7 +118,7 @@ pProg <- function(state, decision, cycle, cycle_in_Moderate, DIE){
   (state=="Moderate")*rrProg(decision)*pProgNoTrt
 }
 
-cost <- function(state, cycle_in_Severe){
+cost <- function(state){
   switch(state, 
          "Moderate" = 3000,
          "Severe" = 6000,
@@ -147,7 +147,7 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
             values = c(T, F), 
             results = c("Severe", curr_state()), 
             probs = c(pProg(state, decision, cycle, cycle_in_state("Moderate"), DIE), Inf)) + 
-  payoffs(cost = cost(state, cycle_in_state("Severe")), 
+  payoffs(cost = cost(state), 
           effectiveness = effectiveness(state))
 # tunnel_states(mygmod)
 # is_cycle_dep(mygmod)
