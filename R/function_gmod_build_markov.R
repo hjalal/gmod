@@ -142,8 +142,8 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
            dest_idx = ifelse(state == dest & state_idx > 0, state_idx + 1, 0),
            dest_idx = ifelse(state != dest & dest %in% tunnel_states, 1, dest_idx),
            state_expanded = paste0(state, ifelse(state_idx==0,"", paste0("_tnl",state_idx))), 
-           dest_expanded = paste0(dest, ifelse(dest_idx==0,"",paste0("_tnl", dest_idx)))) %>% 
-    filter(dest_expanded %in% states_expanded)
+           dest_expanded = paste0(dest, ifelse(dest_idx==0,"",paste0("_tnl", dest_idx)))) #%>% 
+    #filter(dest_expanded %in% states_expanded)
   # dest expanded can include some unexpanded states - these can be ignored in the evaluations
   
 
@@ -180,7 +180,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   # group payoffs by originating state, decision, cycle
   path_df7 <- path_df5 %>% 
     ungroup() %>% 
-    select(-events, -dest_expanded, -dest, -path_id, -probs) %>% 
+    select(-events, -dest_expanded, -dest, -dest_idx, -path_id, -probs) %>% 
     group_by(across(-payoff_names)) %>% 
     summarize(across(payoff_names, ~ paste0(.x, collapse="+")))
   
