@@ -54,6 +54,87 @@ effectiveness <- function(state){
 
 # Markov Model ==========
 mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
+  decisions("NoTrt") + #, "TrtA", "TrtB") + 
+  states("Moderate", "Severe", "Dead") + 
+  discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.015, 0.015)) + 
+  initial_probs(states = "Moderate", probs = 1) +  
+  event_mapping(event = "DIE",  
+                values = c(T, F), 
+                results = c("Dead", "PROGRESS"), 
+                probs = c(pDie(state), Inf)) +  
+  event_mapping(event = "PROGRESS", 
+                values = c(T, F), 
+                results = c("Severe", curr_state()), 
+                probs = c(pProg(state, decision), Inf)) + 
+  payoffs(cost = cost(state), 
+          effectiveness = effectiveness(state))
+# tunnel_states(mygmod)
+# is_cycle_dep(mygmod)
+model_struc <- gmod_build(mygmod)
+View(model_struc$markov_eqns)
+model_num_struc <- gmod_parse(model_struc, params = NULL)
+View(model_num_struc$markov_eqns)
+model_res <- gmod_evaluate(model_num_struc)
+
+print(model_res)
+
+
+# Markov with n_cycles# 
+rm(list = ls())
+#source("functions.R")
+library(tidyverse)
+library(gmod) #Grammar of Modelling 
+# Parameters:
+pProgNoTrt <-	0.100
+rrProgTrtA<-	0.8
+rrProgTrtB<-	0.7
+
+pMortMod	<- 0.050
+pMortSev	<- 0.200
+
+
+
+# without arguments because it gets determined by the local environment
+rrProg <- function(decision){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  switch(decision, "NoTrt" = 1,
+         "TrtA" = rrProgTrtA,
+         "TrtB" = rrProgTrtB)
+  #df_rrProg$value[df_rrProg$decision == decision]
+}
+
+pDie <- function(state){
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  switch(state, 
+         "Moderate" = pMortMod,
+         "Severe" = pMortSev, 
+         "Dead" = 1)
+  #df_pDie$value[df_pDie$state == state]
+}
+
+pProg <- function(state, decision, cycle, cycle_in_Moderate, DIE){
+  #decision <- get("decision", envir = parent.frame())  # Get x from the calling environment
+  #state <- get("state", envir = parent.frame())  # Get x from the calling environment
+  (state=="Moderate")*rrProg(decision)*pProgNoTrt
+}
+
+cost <- function(state, cycle_in_Severe){
+  switch(state, 
+         "Moderate" = 3000,
+         "Severe" = 6000,
+         "Dead" = 0)
+}
+
+effectiveness <- function(state){
+  switch(state, 
+         "Moderate" = 0.8,
+         "Severe" = 0.6,
+         "Dead" = 0)
+}
+
+
+# Markov Model ==========
+mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
   decisions("NoTrt", "TrtA", "TrtB") + 
   states("Moderate", "Severe", "Dead") + 
   discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.015, 0.015)) + 
@@ -65,15 +146,17 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 3) +
   event_mapping(event = "PROGRESS", 
             values = c(T, F), 
             results = c("Severe", curr_state()), 
-            probs = c(pProg(state, decision), Inf)) + 
-  payoffs(cost = cost(state), 
+            probs = c(pProg(state, decision, cycle, cycle_in_state("Moderate"), DIE), Inf)) + 
+  payoffs(cost = cost(state, cycle_in_state("Severe")), 
           effectiveness = effectiveness(state))
-tunnel_states(mygmod)
-is_cycle_dep(mygmod)
+# tunnel_states(mygmod)
+# is_cycle_dep(mygmod)
 model_struc <- gmod_build(mygmod)
 model_struc
 model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_num_struc)
+View(model_num_struc$markov_eqns)
+# View(model_num_struc$payoff_eqns)
+model_res <- gmod_evaluate(model_struc, params = NULL)
 
 print(model_res)
 

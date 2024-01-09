@@ -52,7 +52,20 @@ add_decision_eqns <- function(gmod_obj, model_obj){
     }      
     path_df2[[payoff_name]] <- replace_event_with_value(x = path_df2[[payoff_name]], input_df = path_df2, events = events)
   }
-  model_obj$model_formulae <- path_df2
+  model_obj$outcome_formulae <- path_df2
+  
+  # multiply outcomes by probabilities and aggregate by decision
+  path_df3 <- path_df2 %>% 
+    rowwise() %>% 
+    mutate(across(payoff_names, ~ paste0(probs, "*", .x)))
+  
+  # aggregate by decision
+  path_df4 <- path_df3 %>% 
+    ungroup() %>% 
+    group_by(decision) %>% 
+    summarize(across(payoff_names, ~ paste0(.x, collapse = "+")))
+  
+  model_obj$summary_formulae <- path_df4
   return(model_obj)
 }
 

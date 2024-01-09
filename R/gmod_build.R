@@ -36,10 +36,10 @@ gmod_build.gmod_markov <- function(gmod_obj){
   events_with_payoffs_df <- get_events_with_payoffs_df(events_df)
   model_obj$events_df <- events_df
   model_obj$events_with_payoffs_df <- events_with_payoffs_df
-  model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
   model_obj <- add_payoffs(gmod_obj, model_obj)
-  model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
-  model_obj <- add_event_prop_eqns(gmod_obj, model_obj, events_df, events_with_payoffs_df)
+  model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
+  #model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
+  #model_obj <- add_event_prop_eqns(gmod_obj, model_obj, events_df, events_with_payoffs_df)
   #model_obj <- add_markov_event_payoff_eqns(gmod_obj, model_obj, events_df)
   
   class(model_obj) <- "gmod_markov"

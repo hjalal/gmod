@@ -36,9 +36,14 @@ get_first_event <- function(events_df){
   return(first_event)
 }
 
-get_prob_chain <- function(gmod_obj, events_df, end_state){
+get_prob_chain <- function(gmod_obj, events_df, end_state, is_curr_state = FALSE){
+  if (is_curr_state){
+    end_state_call <- "curr_state"
+  } else {
+    end_state_call <- end_state
+  }
   # get the row id sequences for for each event chain
-  event_chains <- get_event_chain_ids(events_df, results_id = end_state)
+  event_chains <- get_event_chain_ids(events_df, results_id = end_state_call)
   # convert to strings with * between each element and + between each chain
   for (event_chain in event_chains){
     gmod_obj$path_id <- gmod_obj$path_id + 1
@@ -51,6 +56,23 @@ get_prob_chain <- function(gmod_obj, events_df, end_state){
   #if (prob_chain == "()"){prob_chain <- "0"}
   return(gmod_obj)
 }
+
+get_prob_chain_markov <- function(gmod_obj, events_df, end_state){
+  # get the row id sequences for for each event chain
+  event_chains <- get_event_chain_ids(events_df, results_id = end_state)
+  # convert to strings with * between each element and + between each chain
+  for (event_chain in event_chains){
+    gmod_obj$path_id <- gmod_obj$path_id + 1
+    gmod_obj$path_df_list[[gmod_obj$path_id]] <- data.frame(
+      path_id = rep(gmod_obj$path_id, length(event_chain)),
+      chain_id = event_chain,
+      dest = end_state)
+  }
+  #prob_chain <- build_prob_chain(events_df, event_chains)
+  #if (prob_chain == "()"){prob_chain <- "0"}
+  return(gmod_obj)
+}
+
 
 # Function to retrieve the value 'X' based on the 'event'
 get_id_with_events <- function(data, results_id) {

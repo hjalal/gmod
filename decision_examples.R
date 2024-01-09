@@ -187,6 +187,18 @@ p_comp(decision = "Biopsy", HVE = TRUE)
 f_HVE <- function(DIE){
   (!DIE) * p_HVE
 }
+cost <- function(decision, outcome){ #}, propHVE){
+  c_biopsy*(decision=="Biopsy") + 
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
+  #c_HVE*propHVE
+}
+effectiveness <- function(decision, outcome){
+  -q_loss_biopsy*(decision=="Biopsy") + 
+    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+}
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
@@ -203,11 +215,13 @@ mygmod <- gmod(model_type = "Decision") +
   event_mapping(event = "get_comp", 
                 values = c(T, F),
                 results = c("comp", "no_comp"),
-                probs = c(p_comp(decision, HVE), Inf))
+                probs = c(p_comp(decision, HVE), Inf)) + 
+  payoffs(cost = cost(decision, outcome),  
+          effectiveness = effectiveness(decision, outcome))
 
 model_struc <- gmod_build(mygmod)
-model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_num_struc)
+#model_num_struc <- gmod_parse(model_struc, params = NULL)
+model_res <- gmod_evaluate(model_struc, params = NULL)
 
 print(model_res)
 
