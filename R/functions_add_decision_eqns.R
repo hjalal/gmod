@@ -21,24 +21,24 @@ add_decision_eqns <- function(gmod_obj, model_obj){
     gmod_obj <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
     #vec_p_stay[outcome] <- get_prob_chain(gmod_obj, events_df, end_outcome = "curr_outcome")
   }
-  path_df <- bind_rows(gmod_obj$path_df_list) %>% 
-    inner_join(events_df, by = c("chain_id" = "id"))
+  path_df <- dplyr::bind_rows(gmod_obj$path_df_list) %>% 
+    dplyr::inner_join(events_df, by = c("chain_id" = "id"))
   
 
-  path_df1 <- path_df %>% crossing(decisions) %>% 
-    rowwise() %>% 
-    mutate(probs = gsub("\\bdecision\\b", paste0("'",decision,"'"), probs))
+  path_df1 <- path_df %>% tidyr::crossing(decisions) %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(probs = gsub("\\bdecision\\b", paste0("'",decision,"'"), probs))
   # deal with prev_event() 
   path_df1_1 <- path_df1 %>% 
-    pivot_wider(names_from = event, values_from = values)
+    tidyr::pivot_wider(names_from = event, values_from = values)
   
   
   # collapse chain probs and create list of all events and values
   path_df2 <- path_df1_1 %>% 
-    ungroup() %>%
-    group_by(decision, outcome, path_id) %>% 
-    summarize(probs = paste0("(",probs, ")",collapse = "*"), 
-              across(events, ~ event_value(.x)))
+    dplyr::ungroup() %>%
+    dplyr::group_by(decision, outcome, path_id) %>% 
+    dplyr::summarize(probs = paste0("(",probs, ")",collapse = "*"), 
+              dplyr::across(events, ~ event_value(.x)))
   
   # replace event names in probabilities with event name value pairs 
   path_df2$probs <- replace_event_with_value(x = path_df2$probs, input_df = path_df2, events = events)
@@ -57,14 +57,14 @@ add_decision_eqns <- function(gmod_obj, model_obj){
   
   # multiply outcomes by probabilities and aggregate by decision
   path_df3 <- path_df2 %>% 
-    rowwise() %>% 
-    mutate(across(payoff_names, ~ paste0(probs, "*", .x)))
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dplyr::across(payoff_names, ~ paste0(probs, "*", .x)))
   
   # aggregate by decision
   path_df4 <- path_df3 %>% 
-    ungroup() %>% 
-    group_by(decision) %>% 
-    summarize(across(payoff_names, ~ paste0(.x, collapse = "+")))
+    dplyr::ungroup() %>% 
+    dplyr::group_by(decision) %>% 
+    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse = "+")))
   
   model_obj$summary_formulae <- path_df4
   return(model_obj)
@@ -76,7 +76,7 @@ event_value <- function(x, default_na_value = "FALSE"){
     default_na_value
     #"NA" #returns NA if the event is missing
   } else {
-    unique(na.omit(x))
+    unique(stats::na.omit(x))
   }
 }
 

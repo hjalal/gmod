@@ -33,12 +33,12 @@ gmod_parse.gmod_markov <- function(model_struc, params = NULL){
   model_num_str <- model_struc
   payoff_names <- model_num_str$payoff_names
   model_num_str$markov_eqns <- model_num_str$markov_eqns %>% 
-    rowwise() %>% 
-    mutate(probs = eval(parse(text = probs)))
+    dplyr::rowwise() %>% 
+    dplyr::mutate(probs = eval(parse(text = probs)))
   
   model_num_str$payoff_eqns <- model_num_str$payoff_eqns %>% 
-    rowwise() %>% 
-    mutate(across(payoff_names, ~ eval(parse(text = .x))))
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dplyr::across(payoff_names, ~ eval(parse(text = .x))))
   
   class(model_num_str) <- "gmod_markov"
   return(model_num_str)

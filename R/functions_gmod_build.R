@@ -3,10 +3,9 @@
 #'
 #' @param model_type 
 #' @param n_cycles = 50 
-#' 
 #' @return a new gmod object 
 #' @export
-#'
+#' @importFrom magrittr %>%
 #' @examples gmod(model_type = "Markov", n_cycles = 40)
 #' 
 gmod <- function(model_type, n_cycles = 50) {

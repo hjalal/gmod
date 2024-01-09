@@ -1,7 +1,7 @@
 # Markov with n_cycles# 
 rm(list = ls())
 #source("functions.R")
-library(tidyverse)
+#library(tidyverse)
 library(gmod) #Grammar of Modelling 
 # Parameters:
 pProgNoTrt <-	0.100

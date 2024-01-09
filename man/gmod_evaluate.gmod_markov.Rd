@@ -4,7 +4,7 @@
 \alias{gmod_evaluate.gmod_markov}
 \title{Runs the markov model}
 \usage{
-\method{gmod_evaluate}{gmod_markov}(model_num_struc)
+\method{gmod_evaluate}{gmod_markov}(model_struc, params = NULL)
 }
 \arguments{
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}

@@ -4,7 +4,7 @@
 \alias{gmod_evaluate.gmod_decision}
 \title{Runs the decision tree}
 \usage{
-\method{gmod_evaluate}{gmod_decision}(model_num_struc)
+\method{gmod_evaluate}{gmod_decision}(model_struc, params = NULL)
 }
 \arguments{
 \item{model_num_struc}{a matrix containing the numerical gmod decision object from the gmod_parse() function}

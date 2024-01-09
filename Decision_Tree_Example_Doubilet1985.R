@@ -1,7 +1,8 @@
 #  Doubilet 1985 example ========
 ## only Treat and NoTrt strategies with NA functions ========
 rm(list = ls())
-library(tidyverse)
+library(gmod)
+#library(tidyverse)
 
 pDieBiopsy <- 0.004
 pSevBiopsy <- 0.01

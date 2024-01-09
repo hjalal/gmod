@@ -8,7 +8,7 @@ construct_prob_vec <- function(x, v_prob) {
   }
   
   # Create a named vector of probabilities
-  prob_vector <- setNames(v_prob, x)
+  prob_vector <- stats::setNames(v_prob, x)
   return(prob_vector)
 }
 

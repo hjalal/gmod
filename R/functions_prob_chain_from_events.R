@@ -5,8 +5,8 @@ get_event_df <- function(gmod_obj){
   for (i in 1:length(event_layers)){
     temp_df <- event_layers[[i]] %>% 
       as.data.frame() %>% 
-      mutate(values = as.character(values)) %>%
-      select(-payoffs) 
+      dplyr::mutate(values = as.character(values)) %>%
+      dplyr::select(-payoffs) 
     # process payoffs separately for each layer
     payoffs_string <- event_layers[[i]]$payoffs 
     if (payoffs_string == ""){
@@ -19,8 +19,8 @@ get_event_df <- function(gmod_obj){
     }
     event_df_list[[i]] <- temp_df
   }
-  event_df <- bind_rows(event_df_list) %>% 
-    mutate(id = row_number())
+  event_df <- dplyr::bind_rows(event_df_list) %>% 
+    dplyr::mutate(id = dplyr::row_number())
   return(event_df)
 }
 

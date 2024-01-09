@@ -1,7 +1,7 @@
 # Decision Tree ========
 rm(list = ls())
-library(tidyverse)
-
+#library(tidyverse)
+library(gmod)
 pSick <- function(decision){
   if (decision == "A") 0.5 else 0.7
 }
@@ -14,8 +14,8 @@ mygmod <- gmod(model_type = "Decision") +
 
 model_struc <- gmod_build(mygmod)
 model_struc
-model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_num_struc)
+#model_num_struc <- gmod_parse(model_struc, params = NULL)
+model_res <- gmod_evaluate(model_struc)
 model_res
 
 
