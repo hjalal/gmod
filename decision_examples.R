@@ -7,10 +7,11 @@ pSick <- function(decision){
 }
 mygmod <- gmod(model_type = "Decision") + 
   decisions("A", "B") + 
-  event_mapping(event = "event_disease",  
+  event_mapping(event = "get_infection",  
                 values = c(T, F), 
-                results = c("Sick", "Die"), 
-                probs = c(pSick(decision), Inf)) 
+                results = c("Sick", "Healthy"), 
+                probs = c(pSick(decision), Inf)) + 
+  payoffs(utility = )
 
 model_struc <- gmod_build(mygmod)
 model_struc

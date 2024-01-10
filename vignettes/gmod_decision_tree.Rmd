@@ -14,6 +14,85 @@ knitr::opts_chunk$set(
 )
 ```
 
+gmod is build on the Grammar of Modeling, and meant to allow for building decision trees and Markov models using a concise and flexible syntax.  This introductory example illustrates a simple decision tree that we will gradually build on in other vignettes.
+
+If you haven't already, install gmod using devtools.  Also, make sure to enable use_vignettes so that vignettes render correctly.
+```{r}
+#library(devtools)
+# install_github("hjalal/gmod", use_vignettes = TRUE, force = TRUE)
+```
+
 ```{r setup}
+rm(list = ls())
 library(gmod)
 ```
+
+First, we define the gmod object by defining its layers.  
+```{r}
+mygmod <- gmod(model_type = "Decision") + 
+  decisions("A", "B") + 
+  event_mapping(event = "get_infection",  
+                values = c(T, F), 
+                results = c("Sick", "Healthy"), 
+                probs = c(pSick(decision), Inf)) + 
+  payoffs(life_expectancy = compute_le(outcome))
+
+```
+The `gmod()` function creates a gmod object of type "Decision" standing for a decision tree.  
+For a Markov model, please see the Markov model Vignette.  
+The `decision()` function describes the decision options.  These can later be referred to with 
+the special keyword (decision) below.  There should be only one decisions layer per gmod object.
+The `event_mapping()` describes a single event "get_infection". This event takes two values TRUE or FALSE. [Below we expand this to use more than two values.]  If TRUE the person ends up with the "Sick" outcome, otherwise they end up with the "Healthy" Outcome. The probs argument defines the probability of getting sick.  Notice that we are using an external function `pSick` (that we will define next). This function returns a different value depending on the decision. The `Inf` is a place holder computes the complementary probbility (i.e., `1-pSick()`) and reduces the amount of typing required. 
+The payoffs layer defines the payoffs.  Here we use a single payoff life_expectancy the value of which is computed using the `compute_LE()` function by taking the special keyword outcome defined below. Outcomes are the results of the final events in the gmod object.  
+
+```{r}
+pSick <- function(decision){
+  if (decision == "A") 0.5 else 0.7
+}
+```
+pSick is a simple function here that will return 0.5 if the decision="A", otherwise 0.7.  Later we will show how to create more complex probabilities that can take into account the value of prior events which will help us keep the code concise.
+
+```{r}
+compute_le <- function(outcome){
+  if (outcome == "Sick") 20 else 40
+}
+```
+Similar to `pSick` above, we define the `compute_le()` as a function of the outcome.  If Sick, it returns 20 years, if Healthy, it returns 40 years. 
+
+NOTE: R is case sensitivie, so you have to make sure that all the oucomes, payoffs, values, decisions follow the same case.  For example, if we use `outcome=="sick"` that is not the same as `outcome=="Sick"`. 
+
+Then, we can build the gmod object by calling `gmod_build()` function which returns the formulae of our decision tree as a list 
+```{r}
+model_struc <- gmod_build(mygmod)
+model_struc
+```
+
+This list returns information about our tree.  For example, the outcomes and the payoffs. It also returns two tables the first one lists the expanded form of the tree and the formulae by decision and outcome and each path that leads to the outcome.  The second is a summary table for the formulae involved in the payoffs.  Let's take a look at the payoff summary table.
+```{r}
+model_struc$summary_formulae
+```
+This table will return two formuale for life expectancy, one per decision. For example life expectancy of A equals `(1-(pSick('A')))*compute_le('Healthy')+(pSick('A'))*compute_le('Sick')`.  This is a meaningful formula as it describes the life expectancy of decision A as a weighted sum of probability of getting sick given A and life expectancy given each outcome Sick and Healthy.  We can also evaluate this formula directly of gmod
+
+```{r}
+(1-(pSick('A')))*compute_le('Healthy')+(pSick('A'))*compute_le('Sick')
+```
+This returns 30 years on average for treatment A.
+
+We can formally evaluate our gmod object by calling the function `gmod_evaluate()`:
+```{r}
+model_res <- gmod_evaluate(model_struc)
+model_res
+```
+
+The main output is a table containing the values of the payoffs.  We can see the 30 years for A, and also we can see that the life expectancy for B is 26 years.  Which we can double check by examing the formula for B:
+```{r}
+(1-(pSick('B')))*compute_le('Healthy')+(pSick('B'))*compute_le('Sick')
+```
+
+In other vignette, we show other features, including:
+
+1. Event outcomes other than TRUE and FALSE
+2. Multiple sequential events
+3. Multiple payoffs (e.g., costs and effectiveness) for cost-effectiveness analyses
+4. The probability of an event depending on the outcome of upstream events
+5. The payoffs depending on the intermediate outcomes from upstream events
