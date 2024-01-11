@@ -1,8 +1,8 @@
 ---
-title: "Introduction to Markov modeling"
+title: "Time Dependent Markov Model"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to Markov modeling}
+  %\VignetteIndexEntry{Time Dependent Markov Model}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,11 +14,13 @@ knitr::opts_chunk$set(
 )
 ```
 
-This vignette replicates our introductory tutorial for Markov models in *Medical Decision Making*:  
+This vignette replicates our Advanced tutorial for Markov models in *Medical Decision Making*:  
 
-Alarid-Escudero, F., Krijkamp, E., Enns, E. A., Yang, A., Hunink, M. M., Pechlivanoglou, P., & Jalal, H. (2023). An introductory tutorial on cohort state-transition models in r using a cost-effectiveness analysis example. Medical Decision Making, 43(1), 3-20.
+*Alarid-Escudero, F., Krijkamp, E., Enns, E. A., Yang, A., Hunink, M. M., Pechlivanoglou, P., & Jalal, H. (2023). A tutorial on time-dependent cohort state-transition models in r using a cost-effectiveness analysis example. Medical Decision Making, 43(1), 21-41.*
 
-If you haven't already, install gmod using devtools.  Also, make sure to enable use_vignettes so that vignettes render correctly.
+This vignette builds on the previous introductory tutorial. If you haven't already, please review the introductory Markov tutorial first. 
+
+First, install gmod using devtools.  Also, make sure to enable use_vignettes so that vignettes render correctly.
 ```{r}
 #library(devtools)
 #install_github("hjalal/gmod", use_vignettes = TRUE, force = TRUE)
@@ -27,9 +29,9 @@ If you haven't already, install gmod using devtools.  Also, make sure to enable 
 ```{r setup}
 rm(list = ls())
 library(gmod)
+library(magrittr)
 ```
 
-The Markov model involves a cost-effectiveness example with 4 decisions and 4 states. For more details on the model, please refer to the reference above. First we define the gmod object and the layers. 
 ```{r}
 mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
@@ -39,9 +41,13 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 75) +
   event_mapping(event = "get_event",  
                 values = c("recover", "getsick", "progress", "die", "stay"), 
                 results = c("H", "S1", "S2", "D", curr_state()), 
-                probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf)) +  
-  payoffs(cost = cost(state, decision), 
-          utility = utility(state, decision))
+                probs = c(pRecover(state), 
+                          pGetSick(state), 
+                          pProgress(state, decision, cycle_in_S1), 
+                          pDie(state, cycle, v_r_mort_by_age), 
+                          Inf)) +  
+  payoffs(cost = cost(state, decision, get_event), 
+          utility = utility(state, decision, get_event))
 ```
 
 The `gmod()` function defines the model type as a Markov model and number of cycles as 75. The `decision()` function defines the treatment strategies.  The `initial_probs()` defines the initial probabilities. Here we only define the "Moderate" states as the starting state with probability equals 1. The other states will be set to 0. 
@@ -50,30 +56,61 @@ Since the tutorial assumes that all the events happen simultaneously (i.e., no s
 
 The `curr_state()` is a build-in function that instructs gmod to compute the probability of a state returning to itself.
 
-Before we can evaluate the model, first we need to pass the parameter values. Here we use the global environment to define those. Later, we show how to pass these as a parameter list `param` which will be helpful for analyses such as probabilitistic sensitivity analyses. 
+Before we can evaluate the model, first we need to pass the parameter values. Here we use the global environment to define those. Later, we show how to pass these as a parameter list `param` which will be helpful for analyses such as probabilistic sensitivity analyses. 
+
 ```{r}
-r_HD <- 0.002
-r_HS1 <- 0.15
-r_S1H <- 0.5
-r_S1S2 <- 0.105
-hr_S1 <- 3
-hr_S2 <- 10
-hr_S1S2_trtB <- 0.6
+n_age_init <- 25  # age at baseline
+n_age_max  <- 100 # maximum age of follow up
 
-c_H <- 2000
-c_S1 <- 4000
-c_S2 <- 15000
-c_D <- 0
-c_trtA <- 12000
-c_trtB <- 13000
+### Transition rates (annual), and hazard ratios (HRs) ----
+r_HS1  <- 0.15  # constant annual rate of becoming Sick when Healthy
+r_S1H  <- 0.5   # constant annual rate of becoming Healthy when Sick
+hr_S1  <- 3     # hazard ratio of death in Sick vs Healthy 
+hr_S2  <- 10    # hazard ratio of death in Sicker vs Healthy 
 
-u_H <- 1
-u_S1 <- 0.75
-u_S2 <- 0.5
-u_D <- 0
-u_trtA <- 0.95
+### Effectiveness of treatment B ----
+hr_S1S2_trtB <- 0.6  # hazard ratio of becoming Sicker when Sick under treatment B
+
+#* Weibull parameters for state-residence-dependent transition probability of 
+#* becoming Sicker when Sick conditional on surviving
+r_S1S2_scale <- 0.08 # scale
+r_S1S2_shape <- 1.1  # shape
+
+## Age-dependent mortality rates ----
+lt_usa_2015 <- read.csv("../data/LifeTable_USA_Mx_2015.csv")
+#* Extract age-specific all-cause mortality for ages in model time horizon
+v_r_mort_by_age <- lt_usa_2015 %>% 
+  dplyr::filter(Age >= n_age_init & Age < n_age_max) %>%
+  dplyr::select(Total) %>%
+  as.matrix() # anyone above 100 have the same mortality
 
 ```
+
+
+
+```{r}
+### State rewards ----
+#### Costs ----
+c_H    <- 2000  # annual cost of being Healthy
+c_S1   <- 4000  # annual cost of being Sick
+c_S2   <- 15000 # annual cost of being Sicker
+c_D    <- 0     # annual cost of being dead
+c_trtA <- 12000 # annual cost of receiving treatment A
+c_trtB <- 13000 # annual cost of receiving treatment B
+#### Utilities ----
+u_H    <- 1     # annual utility of being Healthy
+u_S1   <- 0.75  # annual utility of being Sick
+u_S2   <- 0.5   # annual utility of being Sicker
+u_D    <- 0     # annual utility of being dead
+u_trtA <- 0.95  # annual utility when receiving treatment A
+
+### Transition rewards ----
+du_HS1 <- 0.01  # disutility when transitioning from Healthy to Sick
+ic_HS1 <- 1000  # increase in cost when transitioning from Healthy to Sick
+ic_D   <- 2000  # increase in cost when dying
+```
+
+
 
 
 The model has six user-defined functions: four for computing probabilities `pRecover()`, `pGetSick()`, `pProgress()` and `pDie()`, and 2 for payoffs `cost()` and `utility()`.  
@@ -102,10 +139,21 @@ pGetSick <- function(state){
 
 probability of progress is slightly more complex as it is a function of both the state and the decision.  
 ```{r}
-pProgress <- function(state, decision){
+pProgress <- function(state, decision, cycle_in_S1){
+  if (state=="S1"){
   hr_S1S2 <- if (decision %in% c("StrategyB", "StrategyAB")) hr_S1S2_trtB else 1
-  rProgress <- (state=="S1") * r_S1S2 * hr_S1S2
+  
+  r_S1S2_tunnels <- (cycle_in_S1*r_S1S2_scale)^r_S1S2_shape - 
+                    ((cycle_in_S1 - 1)*r_S1S2_scale)^r_S1S2_shape
+  
+  p_S1S2_tunnels <- rate2prob(r_S1S2_tunnels)
+     
+  rProgress <- (state=="S1") * r_S1S2_tunnels * hr_S1S2
+  
   rate2prob(rProgress)
+  } else {
+    0
+  }
 }
 ```
 hr_S1S2 is a function of the decision if it contains "B" then it is hr_S1S2_trtB otherwise is 1.  then the rate of progression is only conditional on state being S1 which gets multiplied by the r_S1S2 and the hr_S1S2.
@@ -122,7 +170,8 @@ if (state=="S1") TRUE else FALSE
 
 Probability of death is a function of the state. For states S1 and S2 the rate of mortality is relative to the healthy rate multiplied by a hazard ratio for each state.
 ```{r}
-pDie <- function(state){
+pDie <- function(state, cycle, v_r_mort_by_age){
+  r_HD <- v_r_mort_by_age[cycle]
   rDie <- switch(state, 
          "H" = r_HD,
          "S1" = r_HD*hr_S1,
@@ -134,8 +183,11 @@ pDie <- function(state){
 
 The payoffs are a cost and utility function. Both are dependent on both the state and the decision. For example only those in S1 and S2 receive treatment.
 ```{r}
-cost <- function(state, decision){
+cost <- function(state, decision, get_event){
   # cost of decision is only applied if the state is either S1 or S2
+  trans_cost_getting_sick <- (get_event=="getsick")*ic_HS1 # increase in cost when transitioning from Healthy to Sick
+  trans_cost_dying <- (get_event=="die")*ic_D # increase in cost when dying
+
   if (state %in% c("S1","S2")){
     c_decision <- switch(decision,
                         "StandardOfCare" = 0,
@@ -158,12 +210,14 @@ cost <- function(state, decision){
 
 Similarly the utility function is a function of the state and decision. For H, S2 and D, the utility is independent of the decision. But, Strategies involving "A" improve the utility of S1 from u_S1 to u_trtA. One way to code this is:
 ```{r}
-utility <- function(state, decision){
+utility <- function(state, decision, get_event){
+  trans_util_getting_sick <- du_HS1*(get_event=="getsick")
   u_state <- switch(state, 
          "H" = u_H,
          "S1" = if (decision %in% c("StrategyA", "StrategyAB")) u_trtA else u_S1,
          "S2" = u_S2,
          "D" = u_D)
+  return(du_HS1 + u_state)
 }
 ```
 
@@ -190,5 +244,4 @@ Similarly, we can load the summary results of the costs and utility of the strat
 ```{r}
 model_res$Summary
 ```
-
 

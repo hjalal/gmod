@@ -85,8 +85,17 @@ replace_event_with_value <- function(x, input_df, events){
   n <- nrow(input_df)
   for (event in events){
     for (i in 1:n){
-      x[i] <- gsub(paste0("\\b", event, "\\b"), paste0(event, "=", input_df[i,event]), x[i])
+      #x[i] <- gsub(paste0("\\b", event, "\\b"), paste0(event, "=\"", input_df[i,event]), "\"", x[i])
+      x[i] <- gsub(paste0("\\b", event, "\\b"), paste0(event, "=", is_numeric_or_logical(input_df[i,event])), x[i])
     }
   }
   return(x)
+}
+
+is_numeric_or_logical <- function(input_string){
+  if ((input_string %in% c("FALSE", "F", "TRUE", "T")) | grepl("^-?\\d*\\.?\\d+$", input_string)){
+    input_string
+  } else {
+    paste0("'", input_string, "'")
+  }
 }

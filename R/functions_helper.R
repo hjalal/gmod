@@ -39,7 +39,9 @@ probs2string <- function(input_string) {
   wo_white_spaces <- gsub("\\s+", "", input_string)
   cleaned_string <- sub("^c\\((.*)\\)$", "\\1", wo_white_spaces)
   #y <- strsplit(cleaned_string, ", |(?>\\(.*?\\).*?\\K(, |$))", perl = TRUE)[[1]]
-  y <- strsplit(cleaned_string, "(?![^(]*\\)),(?!.*\\))", perl = TRUE)[[1]]
+  # y <- strsplit(cleaned_string, "(?![^(]*\\)),(?!.*\\))", perl = TRUE)[[1]]
+  y <- strsplit(cleaned_string, ",(?![^()]*\\))", perl = TRUE)[[1]]
+
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces
   # remove complement in "inf"
@@ -173,3 +175,27 @@ parse_object <- function(x){
   return(y)
 }
 
+
+#' Title
+#'
+#' @param rate 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+rate2prob <- function(rate){
+  1 - exp(-rate)
+}
+
+#' Title
+#'
+#' @param prob 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+prob2rate <- function(prob){
+  -log(1-prob)
+}

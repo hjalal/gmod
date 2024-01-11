@@ -19,7 +19,7 @@ gmod is build on the Grammar of Modeling, and meant to allow for building decisi
 If you haven't already, install gmod using devtools.  Also, make sure to enable use_vignettes so that vignettes render correctly.
 ```{r}
 #library(devtools)
-# install_github("hjalal/gmod", use_vignettes = TRUE, force = TRUE)
+#install_github("hjalal/gmod", use_vignettes = TRUE, force = TRUE)
 ```
 
 ```{r setup}

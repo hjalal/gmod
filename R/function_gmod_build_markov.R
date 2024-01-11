@@ -138,7 +138,8 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   }
   # replaces cycle_in_state with cycle_in_[STATE]=Tunnel No.
   path_df4 <- path_df3 %>% 
-    dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub('cycle_in_state\\("([^"]+)"\\)', paste0("cycle_in_\\1","=",state_idx), .x)),
+    dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub("cycle_in_(\\w+)", paste0("cycle_in_\\1=", state_idx), .x)), 
+       #gsub('cycle_in_state\\("([^"]+)"\\)', paste0("cycle_in_\\1","=",state_idx), .x)),
            dest_idx = ifelse(state == dest & state_idx > 0, state_idx + 1, 0),
            dest_idx = ifelse(state != dest & dest %in% tunnel_states, 1, dest_idx),
            state_expanded = paste0(state, ifelse(state_idx==0,"", paste0("_tnl",state_idx))), 
@@ -205,19 +206,25 @@ tunnel_states <- function(gmod_obj){
   probs <- events_df$probs
   # probs
   for (i in 1:length(probs)){
-    matches_transitions <- stringr::str_match_all(probs[i], 'cycle_in_state\\("(.*?)"\\)')
-    tunnel_states <- c(tunnel_states, matches_transitions[[1]][,2])
+    matches_transitions <- extract_tunnel_states(probs[i]) #, 'cycle_in_state\\("(.*?)"\\)')
+    tunnel_states <- c(tunnel_states, matches_transitions) #[[1]][,2])
   }
   # probs
   for (i in 1:length(payoffs_str)){
-    matches_payoffs <- stringr::str_match_all(payoffs_str[i], 'cycle_in_state\\("(.*?)"\\)')
-    tunnel_states <- c(tunnel_states, matches_payoffs[[1]][,2])
+    matches_payoffs <- extract_tunnel_states(payoffs_str[i]) #, 'cycle_in_state\\("(.*?)"\\)')
+    tunnel_states <- c(tunnel_states, matches_payoffs) #[[1]][,2])
   }
   tunnel_states <- unique(tunnel_states)
   
   return(tunnel_states)
 }
 
+extract_tunnel_states <- function(input_string){
+  # Extract endings of words starting with 'cycle_in_'
+  result <- stringr::str_extract_all(input_string, "\\bcycle_in_(\\w+)\\b")[[1]]
+  # Remove the 'cycle_in_' prefix
+  sub("^cycle_in_", "", result)
+}
 
 is_cycle_dep <- function(gmod_obj){
   #gmod_obj$layers
