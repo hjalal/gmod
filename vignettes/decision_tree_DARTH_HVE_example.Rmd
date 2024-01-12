@@ -132,37 +132,9 @@ model_struc
 ```
 
 ```{r}
-gmod_evaluate(model_struc = model_struc, 
-               model_function_name = "my_dec_model",
-               print_model_function = TRUE)
-
+model_res <- gmod_evaluate(model_struc, params = NULL)
+model_res
 ```
-
-```{r}
-params <- list(
-# Probabilities
-p_HVE          = p_HVE, 
-p_HVE_comp     = p_HVE_comp, 
-p_OVE_comp     = p_OVE_comp, 
-p_HVE_comp_tx  = p_HVE_comp_tx, 
-p_OVE_comp_tx  = p_OVE_comp_tx, 
-p_biopsy_death = p_biopsy_death, 
-# Costs
-c_VE           = c_VE, 
-c_VE_comp      = c_VE_comp,
-c_tx           = c_tx, 
-c_biopsy       = c_biopsy,
-# QALYs
-q_VE           = q_VE, 
-q_VE_comp      = q_VE_comp, 
-q_loss_biopsy  = q_loss_biopsy, 
-q_death_biopsy = q_death_biopsy
-)
-
-# call your generated model, by simply: 
-my_dec_model(params)
-```
-
 
 # Direct coding in R
 And here is what the code looks like if one wants to code the transitions all in R directly without using gmod
