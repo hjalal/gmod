@@ -166,35 +166,43 @@ construct_Payoff <- function(model_num_struc){
 
 
 
-#' Runs the decision tree
-#' @description runs the decision model and returns the expected payoff values and summary results
-#' @param model_num_struc a matrix containing the numerical gmod decision object from the gmod_parse() function
-#' @export
-#' 
-#' @return
-#'
-#' @examples gmod_evaluate(numerical_model_structure)
-gmod_evaluate.gmod_decision <- function(model_struc, params = NULL){
-    if(is.null(params)){
-      warning("No parameters were provided. Will use the parameters from the global environment. 
-            If instead you want to evaluate the model with specific parameter values, please provide 
-            them here as list.")
-    } else {
-      list2env(params)
-    }
-    model_results <- list()
-    # for Decison structure, parse P and Payoffs 
-    summary_formulae <- model_struc$summary_formulae
-    payoff_names <- model_struc$payoff_names
-    n <- nrow(summary_formulae)
-    summary_results <- summary_formulae
-    for (payoff_name in payoff_names){
-      for (i in 1:n){
-        summary_results[[payoff_name]][i] <- eval(parse(text = summary_formulae[[payoff_name]][i]))
-      }
-    }
-    model_results$summary_results <- summary_results
-    class(model_results) <- "gmod_decision"
 
-  return(model_results)
+#' Title
+#'
+#' @param model_struc 
+#' @param model_function_name 
+#' @param print_model_function 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+gmod_evaluate.gmod_decision <- function(model_struc, model_function_name = "my_dec_model", print_model_function = FALSE){
+  # build model as a vector of strings 
+  model_lines <- paste0(model_function_name, "<- function(params){")
+  model_lines <- c(model_lines, "list2env(params)")
+  model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(model_struc$decision, collapse = "','"), "'))"))
+  # for Decison structure, parse P and Payoffs 
+  summary_formulae <- model_struc$summary_formulae
+  payoff_names <- model_struc$payoff_names
+  n <- nrow(summary_formulae)
+  for (payoff_name in payoff_names){
+    for (i in 1:n){
+      model_lines <- c(model_lines, paste0("summary_results[['", payoff_name, "']][",i, "] <- ", summary_formulae[[payoff_name]][i]))
+    }
+  }
+  model_lines <- c(model_lines, "return(summary_results)")
+  model_lines <- c(model_lines, "}")
+  
+  model_string <- paste(model_lines, collapse = "\n")
+  
+  if (print_model_function){
+    cat(model_string)
+  }
+  new_func <- eval(parse(text = model_string)) # generates the function
+  # Assign the new function to the global environment
+  assign(model_function_name, new_func, envir = .GlobalEnv)
+  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, " is generated. It can be run by calling it directly:\n", model_function_name, "(params)\033[0m\n"))
+  return(TRUE)
 }
+
