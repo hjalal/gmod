@@ -1,0 +1,35 @@
+---
+title: "Getting started with building Markov models in gmod"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with building Markov models in gmod}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+The purpose of this vignette is to provide a step by step guide to illustrate the main features of gmod for markov modeling:
+
+* think about the structure of gom by adopting a unified sequence of events
+* structure of gmod of decision -> makrov states -> event1 -> event2 -> ... -> last events
+* definitions: 
+  * states
+  * events
+  * final outcomes
+  * intermediate outcomes
+  * payoffs 
+* distinguishing between states and events
+* examining the resulting equations and formulae
+* adding discounting factors
+* adding events
+* accessing prior (upstream event values)
+* adding states
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(gmod)
+```
