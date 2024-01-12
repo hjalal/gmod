@@ -17,10 +17,24 @@ gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
 #' @return
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
-gmod_evaluate.gmod_markov <- function(model_struc, params = NULL){
-  model_num_struc <- gmod_parse(model_struc, params = params)
-  # evaluate based on the objects and create a list
-  model_results <- model_num_struc #list()
+gmod_evaluate.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
+  model_lines <- paste0(model_function_name, "<- function(params){")
+  model_lines <- c(model_lines, "list2env(params)")
+  model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(model_struc$decision, collapse = "','"), "'))"))
+  
+  
+  
+  
+  # for Markov structure, parse P, p0, Payoffs, event_payoff and replace
+  model_num_str <- model_struc
+  payoff_names <- model_num_str$payoff_names
+  model_num_str$markov_eqns <- model_num_str$markov_eqns %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(probs = eval(parse(text = probs)))
+  
+  model_num_str$payoff_eqns <- model_num_str$payoff_eqns %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dplyr::across(payoff_names, ~ eval(parse(text = .x))))
   
   
   
