@@ -17,9 +17,13 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
-  
+  print(environment())
   model_lines <- paste0(model_function_name, "<- function(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_results=FALSE){")
-  model_lines <- c(model_lines, "attach(params)")
+  model_lines <- c(model_lines, "list2env(params, envir=.GlobalEnv)")
+  #model_lines <- c(model_lines, "attach(params)")
+  #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
+  #model_lines <- c(model_lines, "print(r_HS1)")
+  #model_lines <- c(model_lines, "print(environment())")
   
   decisions <- model_struc$decisions
   model_lines <- c(model_lines, paste0("decisions <- model_struc$decisions"))
@@ -81,7 +85,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
     
   } # end decision
   
-  model_lines <- c(model_lines, "detach(params)")
+  #model_lines <- c(model_lines, "detach(params)")
   
   # suppress outcomes, if only the summary results is needed
   model_lines <- c(model_lines, "if(return_payoffs) model_results$Payoff <- Payoff")
@@ -200,10 +204,10 @@ construct_Payoff_str <- function(model_struc, model_lines = ""){
 #' @export
 #'
 #' @examples
-gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_dec_model", print_model_function = FALSE){
+gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE){
   # build model as a vector of strings 
   model_lines <- paste0(model_function_name, "<- function(params){")
-  model_lines <- c(model_lines, "list2env(params)")
+  model_lines <- c(model_lines, "list2env(params, envir = .GlobalEnv)")
   model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(model_struc$decision, collapse = "','"), "'))"))
   # for Decison structure, parse P and Payoffs 
   summary_formulae <- model_struc$summary_formulae
@@ -229,3 +233,8 @@ gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_na
   return(TRUE)
 }
 
+create_variables <- function(params, envir) {
+  for (name in names(params)) {
+    assign(name, params[[name]], envir = envir)
+  }
+}

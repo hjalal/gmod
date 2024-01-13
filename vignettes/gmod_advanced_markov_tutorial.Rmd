@@ -35,7 +35,7 @@ library(magrittr)
 ```
 
 ```{r}
-mygmod <- gmod(model_type = "Markov", n_cycles = 3) + 
+mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states("H", "S1", "S2", "D") + 
   discounts(payoffs = c("cost", "utility"), discounts = c(0.03, 0.03)) + 
@@ -206,9 +206,9 @@ pRecover <- function(state){
 ```
 This is a standard function and can be evaluated like any other function.  For example, we can type
 ```{r}
-pRecover("S1")
-
-pRecover("S2")
+#pRecover("S1")
+#
+#pRecover("S2")
 ```
 
 probability of getting sick is also a function of a single state "H" otherwise is 0.
@@ -315,6 +315,7 @@ To evaluate the model, we run `gmod_evaluate()` which returns the numerical resu
 model_res <- gmod_gen_model_function(model_struc)
 #model_res
 ```
+
 ```{r}
 #source("../R/myfun.R")
 
