@@ -9,9 +9,6 @@ prob2rate(prob)
 \arguments{
 \item{prob}{}
 }
-\value{
-
-}
 \description{
 Title
 }

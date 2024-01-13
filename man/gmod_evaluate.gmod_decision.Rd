@@ -9,9 +9,6 @@
 \arguments{
 \item{model_num_struc}{a matrix containing the numerical gmod decision object from the gmod_parse() function}
 }
-\value{
-
-}
 \description{
 runs the decision model and returns the expected payoff values and summary results
 }
