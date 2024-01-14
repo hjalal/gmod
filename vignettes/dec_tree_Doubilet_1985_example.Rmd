@@ -32,33 +32,35 @@ library(gmod)
 
 Setup model parameters as described in the paper
 ```{r}
-pDieBiopsy <- 0.004
-pSevBiopsy <- 0.01
-pModBiopsy <- 0.03
-sensBiopsy <- 0.95
-specBiopsy <- 0.99
-pHSE <- 0.4 #overall
+params <- list(
+pDieBiopsy = 0.004,
+pSevBiopsy = 0.01,
+pModBiopsy = 0.03,
+sensBiopsy = 0.95,
+specBiopsy = 0.99,
+pHSE = 0.4, #overall
 
-pDieHSE <- .7
-pSevHSE <- .333
-pModHSE <- .5
+pDieHSE = .7,
+pSevHSE = .333,
+pModHSE = .5,
 
-fDie <- .37
-fSev <- .2
-fMod <- .2
+fDie = .37,
+fSev = .2,
+fMod = .2,
 
-pDieNoHSE <- .18
-pSevNoHSE <- .122
-pModNoHSE <- .139
+pDieNoHSE = .18,
+pSevNoHSE = .122,
+pModNoHSE = .139,
 
-addProbDie <- .004
-addProbSev <- .01
-addProbMod <- .02
+addProbDie = .004,
+addProbSev = .01,
+addProbMod = .02,
 
-uDie <- 0
-uSev <- 0.02
-uMod <- .8
-uMld <- 1
+uDie = 0,
+uSev = 0.02,
+uMod = .8,
+uMld = 1
+)
 ```
 
 This structure is meant to reproduce the tree structure as presented in Doubilet et al.  However, their tree uses a binary biforcation, where each event can either be TRUE or FASLE.  Below we simplify this tree structure by adding more outcomes to each decision branch.  The results are identical. 
@@ -176,8 +178,11 @@ model_struc
 
 
 ```{r}
-model_res <- gmod_evaluate(model_struc)
-print(model_res)
+gmod_gen_model_function(model_struc, model_function_name = "doubilet_1985_model")
+```
+
+```{r}
+doubilet_1985_model(params)
 ```
 
 ### Doubilet 1985 Table 2 Results

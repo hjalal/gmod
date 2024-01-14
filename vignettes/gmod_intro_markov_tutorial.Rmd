@@ -52,27 +52,28 @@ The `curr_state()` is a build-in function that instructs gmod to compute the pro
 
 Before we can evaluate the model, first we need to pass the parameter values. Here we use the global environment to define those. Later, we show how to pass these as a parameter list `param` which will be helpful for analyses such as probabilitistic sensitivity analyses. 
 ```{r}
-r_HD <- 0.002
-r_HS1 <- 0.15
-r_S1H <- 0.5
-r_S1S2 <- 0.105
-hr_S1 <- 3
-hr_S2 <- 10
-hr_S1S2_trtB <- 0.6
-
-c_H <- 2000
-c_S1 <- 4000
-c_S2 <- 15000
-c_D <- 0
-c_trtA <- 12000
-c_trtB <- 13000
-
-u_H <- 1
-u_S1 <- 0.75
-u_S2 <- 0.5
-u_D <- 0
-u_trtA <- 0.95
-
+params <- list(
+          r_HD = 0.002,
+          r_HS1 = 0.15,
+          r_S1H = 0.5,
+          r_S1S2 = 0.105,
+          hr_S1 = 3,
+          hr_S2 = 10,
+          hr_S1S2_trtB = 0.6,
+          
+          c_H = 2000,
+          c_S1 = 4000,
+          c_S2 = 15000,
+          c_D = 0,
+          c_trtA = 12000,
+          c_trtB = 13000,
+          
+          u_H = 1,
+          u_S1 = 0.75,
+          u_S2 = 0.5,
+          u_D = 0,
+          u_trtA = 0.95
+)
 ```
 
 
@@ -176,9 +177,14 @@ The output is the structure of the model including the formulae.
 
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical results. 
 ```{r}
-model_res <- gmod_evaluate(model_struc)
+model_res <- gmod_gen_model_function(model_struc)
 #model_res
 ```
+
+```{r}
+my_markov_model(params)
+```
+
 The warning just indicates that no parameters were passed, so gmod uses the values in the global environment.  For analyses, such as probabilistic sensitivity analysis (PSA), we can pass the parameters as a list `param`. 
 
 We can load individual results here that we are interested in. For example, if we are interested in the Markov Trace of the Standard of Care treatment, we can type: 

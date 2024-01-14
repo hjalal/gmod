@@ -67,6 +67,15 @@ model_struc <- gmod_build(mygmod)
 model_struc
 ```
 
+```{r}
+gmod_gen_model_function(model_struc)
+```
+
+```{r}
+my_decision_model()
+```
+
+
 This list returns information about our tree.  For example, the outcomes and the payoffs. It also returns two tables the first one lists the expanded form of the tree and the formulae by decision and outcome and each path that leads to the outcome.  The second is a summary table for the formulae involved in the payoffs.  Let's take a look at the payoff summary table.
 ```{r}
 model_struc$summary_formulae

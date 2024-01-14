@@ -18,8 +18,8 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
   print(environment())
-  model_lines <- paste0(model_function_name, "<- function(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_results=FALSE){")
-  model_lines <- c(model_lines, "list2env(params, envir=.GlobalEnv)")
+  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_results=FALSE){")
+  model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
   #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
   #model_lines <- c(model_lines, "print(r_HS1)")
@@ -49,20 +49,20 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   # construct P 
   model_lines <- construct_P_str(model_struc, model_lines = model_lines)
   
-
+  
   for (decision in decisions){
     model_lines <- c(model_lines, paste0("Trace <- matrix(NA, nrow = ", 
                                          n_cycles,",ncol = ",n_states_expanded,
                                          ", dimnames=list(cycles,states_expanded))"))
     model_lines <- c(model_lines, paste0("Trace[1, ] <- model_struc$p0[['",decision,"']]"))
     model_lines <- c(model_lines, paste0("for (i in 2:",n_cycles,"){"))
-      if (is_cycle_dep){ # use array syntax
-        model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']][,,i]"))
-      } else { #use matrix syntax
-        model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']]"))
-      }
-      model_lines <- c(model_lines, "Trace[i,] <- Trace[i-1,] %*% P_temp")
-      model_lines <- c(model_lines, "}")
+    if (is_cycle_dep){ # use array syntax
+      model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']][,,i]"))
+    } else { #use matrix syntax
+      model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']]"))
+    }
+    model_lines <- c(model_lines, "Trace[i,] <- Trace[i-1,] %*% P_temp")
+    model_lines <- c(model_lines, "}")
     model_lines <- c(model_lines, paste0("model_results$Trace[['",decision,"']] <- Trace"))
   } # end decision
   
@@ -92,7 +92,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   model_lines <- c(model_lines, "if(!return_trace) model_results$Trace <- NULL")
   model_lines <- c(model_lines, "if(!return_detailed_results) model_results$Results_detailed <- NULL")
   model_lines <- c(model_lines, "if(return_transition_prob) model_results$P <- P")
-
+  
   model_lines <- c(model_lines, "model_results$Summary <- mat_summary")
   model_lines <- c(model_lines, "return(model_results)")
   model_lines <- c(model_lines, "}")
@@ -128,10 +128,10 @@ construct_P_str <- function(model_struc, model_lines = ""){
   for (decision in decisions){
     if (is_cycle_dep){
       model_lines <- c(model_lines, paste0("P[['", decision, "']] <- array(0, dim = c(", n_states_expanded, ",", n_states_expanded, ",", n_cycles, 
-                      "), dimnames = list(states_expanded,states_expanded, cycles))"))
+                                           "), dimnames = list(states_expanded,states_expanded, cycles))"))
     } else {
       model_lines <- c(model_lines, paste0("P[['", decision, "']] <- matrix(0, nrow = ", n_states_expanded, ", ncol = ", n_states_expanded, 
-                      ", dimnames = list(states_expanded, states_expanded))"))
+                                           ", dimnames = list(states_expanded, states_expanded))"))
     }
   }
   # iterate through the equations and populate P
@@ -168,10 +168,10 @@ construct_Payoff_str <- function(model_struc, model_lines = ""){
     for (decision in decisions){
       if (is_cycle_dep){ # use array syntax
         model_lines <- c(model_lines, paste0("Payoff[['", payoff_name, "']][['", decision, "']] <- matrix(0, nrow=", n_cycles, ",ncol=", n_states_expanded, 
-                                                                   ",dimnames = list(cycles, states_expanded))"))
+                                             ",dimnames = list(cycles, states_expanded))"))
       } else { #use matrix syntax
         model_lines <- c(model_lines, paste0("Payoff[['", payoff_name, "']][['", decision, "']] <- matrix(0, nrow=1, ncol=", n_states_expanded,
-                                                ",dimnames = list('', states_expanded))"))
+                                             ",dimnames = list('', states_expanded))"))
       }
     }
   }
@@ -206,8 +206,8 @@ construct_Payoff_str <- function(model_struc, model_lines = ""){
 #' @examples
 gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE){
   # build model as a vector of strings 
-  model_lines <- paste0(model_function_name, "<- function(params){")
-  model_lines <- c(model_lines, "list2env(params, envir = .GlobalEnv)")
+  model_lines <- paste0(model_function_name, "<- function(params=NULL){")
+  model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir = .GlobalEnv)")
   # for Decison structure, parse P and Payoffs 
   summary_formulae <- model_struc$summary_formulae
   payoff_names <- model_struc$payoff_names
