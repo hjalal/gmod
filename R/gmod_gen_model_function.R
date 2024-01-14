@@ -208,11 +208,11 @@ gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_na
   # build model as a vector of strings 
   model_lines <- paste0(model_function_name, "<- function(params){")
   model_lines <- c(model_lines, "list2env(params, envir = .GlobalEnv)")
-  model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(model_struc$decision, collapse = "','"), "'))"))
   # for Decison structure, parse P and Payoffs 
   summary_formulae <- model_struc$summary_formulae
   payoff_names <- model_struc$payoff_names
   n <- nrow(summary_formulae)
+  model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(summary_formulae$decision, collapse = "','"), "'))"))
   for (payoff_name in payoff_names){
     for (i in 1:n){
       model_lines <- c(model_lines, paste0("summary_results[['", payoff_name, "']][",i, "] <- ", summary_formulae[[payoff_name]][i]))
