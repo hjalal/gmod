@@ -37,13 +37,18 @@ add_markov_initial_probs <- function(gmod_obj, model_obj){
   
   for (d in model_obj$decisions){
     model_obj$p0[[d]] <- p0
-    for (i in 1:length(init_p0)){
-      state <- init_states[i]
-      if (state %in% tunnel_states){
-        state <- paste0(state, "_tnl1")
+    if (length(init_p0)>0){
+      for (i in 1:length(init_p0)){
+        state <- init_states[i]
+        if (state %in% tunnel_states){
+          state <- paste0(state, "_tnl1")
+        }
+        model_obj$p0[[d]][state] <- init_p0[i]
       }
-      model_obj$p0[[d]][state] <- init_p0[i]
+    } else {
+      stop("Initial probabilities must be specified using initial_probs() function. See vignettes.")
     }
+
     model_obj$p0[[d]] <- check_prob_vector(model_obj$p0[[d]])
   }
   return(model_obj)
@@ -205,13 +210,13 @@ tunnel_states <- function(gmod_obj){
   tunnel_states <- character(0)
   probs <- events_df$probs
   # probs
-  for (i in 1:length(probs)){
-    matches_transitions <- extract_tunnel_states(probs[i]) #, 'cycle_in_state\\("(.*?)"\\)')
+  for (prob in probs){
+    matches_transitions <- extract_tunnel_states(prob) #, 'cycle_in_state\\("(.*?)"\\)')
     tunnel_states <- c(tunnel_states, matches_transitions) #[[1]][,2])
   }
   # probs
-  for (i in 1:length(payoffs_str)){
-    matches_payoffs <- extract_tunnel_states(payoffs_str[i]) #, 'cycle_in_state\\("(.*?)"\\)')
+  for (payoff_str in payoffs_str){
+    matches_payoffs <- extract_tunnel_states(payoff_str) #, 'cycle_in_state\\("(.*?)"\\)')
     tunnel_states <- c(tunnel_states, matches_payoffs) #[[1]][,2])
   }
   tunnel_states <- unique(tunnel_states)

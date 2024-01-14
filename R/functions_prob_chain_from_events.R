@@ -2,7 +2,9 @@
 get_event_df <- function(gmod_obj){
   event_layers <- retrieve_layer_by_type(gmod_obj, type = "event") 
   event_df_list <- list()
-  for (i in 1:length(event_layers)){
+  i <- 0
+  for (event_layer in event_layers){
+    i <- i + 1
     temp_df <- event_layers[[i]] %>% 
       as.data.frame() %>% 
       dplyr::mutate(values = as.character(values)) %>%
@@ -13,8 +15,8 @@ get_event_df <- function(gmod_obj){
       # empty string
     } else {
       payoffs <- payoff2liststring(payoffs_string)
-      for (j in 1:length(payoffs)){
-        temp_df[[names(payoffs)[j]]] <- payoffs[[j]]
+      for (payoff_name in payoffs){
+        temp_df[[names(payoff_name)]] <- payoff_name
       }
     }
     event_df_list[[i]] <- temp_df
@@ -92,13 +94,18 @@ get_event_chain_ids <- function(data, results_id) {
     return(0) #list(as.character(results_id)))
   } else {
     individual_lineages <- list()
-    for (i in 1:length(all_lineages)) {
-      X <- get_id_with_events(data, results_id)[i]
-      individual_lineages <- c(
-        individual_lineages, 
-        lapply(all_lineages[[i]], function(x) c(x, X))
-      )
+    if (length(all_lineages)>0){
+      for (i in 1:length(all_lineages)) {
+        X <- get_id_with_events(data, results_id)[i]
+        individual_lineages <- c(
+          individual_lineages, 
+          lapply(all_lineages[[i]], function(x) c(x, X))
+        )
+      }
+    } else {
+      stop("An error occured in the event_mappings.  Make sure the events are correctly mapped. For more information please refer to the vignettes")
     }
+
     return(individual_lineages)
   }
 }
@@ -107,7 +114,9 @@ get_event_chain_ids <- function(data, results_id) {
 # builds prob chain from event id chains
 build_prob_chain <- function(events_df, event_chains){
   prob_prod_chain <- character()
-  for (i in 1:length(event_chains)){
+  i <- 0
+  for (event_chain in event_chains){
+    i <- i + 1
     event_chain <- event_chains[[i]]
     event_chain <- event_chain[event_chain > 0]
     probs <- filter_probs_by_order(x = events_df$probs, id = events_df$id, sel_ids = event_chain)

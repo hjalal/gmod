@@ -16,13 +16,18 @@ get_prob_chains <- function(data, results_id) {
     return("") #list(as.character(results_id)))
   } else {
     individual_lineages <- list()
-    for (i in 1:length(all_lineages)) {
-      X <- get_value_probs(data, results_id)[i]
-      individual_lineages <- c(
-        individual_lineages,
-        lapply(all_lineages[[i]], function(x) if (x=="") X else c(x, X))
-      )
+    if (length(all_lineages)>0){
+      for (i in 1:length(all_lineages)) {
+        X <- get_value_probs(data, results_id)[i]
+        individual_lineages <- c(
+          individual_lineages,
+          lapply(all_lineages[[i]], function(x) if (x=="") X else c(x, X))
+        )
+      }
+    } else {
+      stop("An error occured in the event mappings.  Please refer to the definitions and the vignettes for more help.")
     }
+
     return(individual_lineages)
   }
 }
