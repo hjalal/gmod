@@ -2,7 +2,7 @@
 #'
 #' @param gmod_obj a gmod object containing the equations for the Markov model
 #' @param params a list containing the model parameters
-#' @description parses the string formulae and computes the numerical results
+#' @description parses the string formulae and computes the numerical outcomes
 #' @return a nuemerical gmod object structure 
 #' @export
 #' 

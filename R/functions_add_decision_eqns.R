@@ -1,8 +1,8 @@
 # main decision model file to add all equations to object 
 # adds all equations to object
-add_decision_eqns <- function(gmod_obj, model_obj){
-  outcomes <- model_obj$outcomes
-  n_outcomes <- model_obj$n_outcomes
+add_decision_eqns <- function(gmod_obj, model_obj, simplify = FALSE){
+  final_outcomes <- model_obj$final_outcomes
+  n_final_outcomes <- model_obj$n_final_outcomes
   events <- model_obj$events
   n_events <- model_obj$n_events
   events_df <- get_event_df(gmod_obj)
@@ -17,9 +17,9 @@ add_decision_eqns <- function(gmod_obj, model_obj){
   gmod_obj$path_id <- 0
   gmod_obj$path_df_list <- list()
   
-  for (outcome in outcomes){
-    gmod_obj <- get_prob_chain(gmod_obj, events_df, end_state = outcome)
-    #vec_p_stay[outcome] <- get_prob_chain(gmod_obj, events_df, end_outcome = "curr_outcome")
+  for (final_outcome in final_outcomes){
+    gmod_obj <- get_prob_chain(gmod_obj, events_df, end_state = final_outcome)
+    #vec_p_stay[final_outcome] <- get_prob_chain(gmod_obj, events_df, end_final_outcome = "curr_final_outcome")
   }
   path_df <- dplyr::bind_rows(gmod_obj$path_df_list) %>% 
     dplyr::inner_join(events_df, by = c("chain_id" = "id"))
@@ -36,7 +36,7 @@ add_decision_eqns <- function(gmod_obj, model_obj){
   # collapse chain probs and create list of all events and values
   path_df2 <- path_df1_1 %>% 
     dplyr::ungroup() %>%
-    dplyr::group_by(decision, outcome, path_id) %>% 
+    dplyr::group_by(decision, final_outcome, path_id) %>% 
     dplyr::summarize(probs = paste0("(",probs, ")",collapse = "*"), 
               dplyr::across(events, ~ event_value(.x)))
   
@@ -48,23 +48,32 @@ add_decision_eqns <- function(gmod_obj, model_obj){
     path_df2[[payoff_name]] <- paste0(deparse(payoffs[[payoff_name]]), collapse = "")
     for (i in 1:nrow(path_df2)){
       path_df2[[payoff_name]][i] <- gsub("\\bdecision\\b", paste0("'",path_df2$decision[i],"'"), path_df2[[payoff_name]][i])
-      path_df2[[payoff_name]][i] <- gsub("\\boutcome\\b", paste0("'",path_df2$outcome[i],"'"), path_df2[[payoff_name]][i])
+      path_df2[[payoff_name]][i] <- gsub("\\bfinal_outcome\\b", paste0("'",path_df2$final_outcome[i],"'"), path_df2[[payoff_name]][i])
     }      
     path_df2[[payoff_name]] <- replace_event_with_value(x = path_df2[[payoff_name]], input_df = path_df2, events = events)
   }
-  model_obj$outcome_formulae <- path_df2
+  model_obj$final_outcome_formulae <- path_df2
   
   
-  # multiply outcomes by probabilities and aggregate by decision
+  # multiply final_outcomes by probabilities and aggregate by decision
   path_df3 <- path_df2 %>% 
     dplyr::rowwise() %>% 
     dplyr::mutate(dplyr::across(payoff_names, ~ paste0(probs, "*", .x)))
+  
+  if (simplify){
+    path_df3 <- path_df3 %>%
+      dplyr::rowwise() %>% 
+      dplyr::mutate(prob_value = eval(parse(text = probs)))  %>%  # filter out probs that are evaluate to 0.
+      dplyr::filter(prob_value != 0) %>% 
+      dplyr::mutate(probs = ifelse(prob_value==1, "1", probs)) %>%
+      dplyr::select(-prob_value)
+  }
   
   # aggregate by decision
   path_df4 <- path_df3 %>% 
     dplyr::ungroup() %>% 
     dplyr::group_by(decision) %>% 
-    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse = "+")))
+    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse = "+\n\t")))
   
   model_obj$summary_formulae <- path_df4
   return(model_obj)

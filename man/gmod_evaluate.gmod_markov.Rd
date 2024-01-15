@@ -14,7 +14,7 @@
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
 \description{
-runs the markov model and returns the traces and summary results
+runs the markov model and returns the traces and summary outcomes
 }
 \examples{
 gmod_evaluate(numerical_model_structure)

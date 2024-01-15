@@ -1,11 +1,11 @@
 # Function to retrieve the value 'X' based on the 'name'
-get_value_probs <- function(data, results_id) {
-  #return(paste0("(",data$probs[data$results == results_id],")"))
-  return(data$id[data$results == results_id])
+get_value_probs <- function(data, outcomes_id) {
+  #return(paste0("(",data$probs[data$outcomes == outcomes_id],")"))
+  return(data$id[data$outcomes == outcomes_id])
 }
 
-get_prob_chains <- function(data, results_id) {
-  names <- data$name[data$results == results_id]
+get_prob_chains <- function(data, outcomes_id) {
+  names <- data$name[data$outcomes == outcomes_id]
   all_lineages <- list()
   
   for (name in names) {
@@ -13,12 +13,12 @@ get_prob_chains <- function(data, results_id) {
   }
   
   if (length(names) == 0) {
-    return("") #list(as.character(results_id)))
+    return("") #list(as.character(outcomes_id)))
   } else {
     individual_lineages <- list()
     if (length(all_lineages)>0){
       for (i in 1:length(all_lineages)) {
-        X <- get_value_probs(data, results_id)[i]
+        X <- get_value_probs(data, outcomes_id)[i]
         individual_lineages <- c(
           individual_lineages,
           lapply(all_lineages[[i]], function(x) if (x=="") X else c(x, X))
@@ -31,8 +31,8 @@ get_prob_chains <- function(data, results_id) {
     return(individual_lineages)
   }
 }
-# get_lineages_recursive <- function(data, results_id) {
-#   names <- data$name[data$results == results_id]
+# get_lineages_recursive <- function(data, outcomes_id) {
+#   names <- data$name[data$outcomes == outcomes_id]
 #   all_lineages <- list()
 #   
 #   for (name in names) {
@@ -40,13 +40,13 @@ get_prob_chains <- function(data, results_id) {
 #   }
 #   
 #   if (length(names) == 0) {
-#     return(list(get_value_X(data, results_id)))
+#     return(list(get_value_X(data, outcomes_id)))
 #   } else {
 #     individual_lineages <- list()
 #     for (i in 1:length(all_lineages)) {
 #       individual_lineages <- c(
 #         individual_lineages,
-#         lapply(all_lineages[[i]], function(x) c(get_value_X(data, results_id), x))
+#         lapply(all_lineages[[i]], function(x) c(get_value_X(data, outcomes_id), x))
 #       )
 #     }
 #     return(individual_lineages)

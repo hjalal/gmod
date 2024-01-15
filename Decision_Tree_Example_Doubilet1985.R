@@ -53,7 +53,7 @@ pBiopRes <- function(HSE){
   HSE*sensBiopsy + (!HSE)*(1-specBiopsy)
 }
 
-util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
+util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
   if (decision=="BrainBiopsy"){
     if (!is.na(sevBiopSeq) & sevBiopSeq){
       uMult <- uSev
@@ -70,7 +70,7 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
   # uMult <- (decision=="BrainBiopsy")*(sevBiopSeq*uSev + modBiopSeq*uMod + (!modBiopSeq)*uMld) + 
   #   (decision!="BrainBiopsy")
   #print(uMult)
-  switch(outcome,
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev*uMult, 
          "MODSEQHSE" = uMod*uMult, 
@@ -80,49 +80,49 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
 ## GMOD =========
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  #outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  #final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "Biopsy",  
                 values = c(TRUE, FALSE), 
-                results = c("dieBiop", "HSE"), 
+                outcomes = c("dieBiop", "HSE"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "dieBiop",  
                 values = c(TRUE, FALSE), 
-                results = c("DEAD", "sevBiopSeq"), 
+                outcomes = c("DEAD", "sevBiopSeq"), 
                 probs = c(pDieBiopsy, Inf))  + 
   event_mapping(event = "sevBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "modBiopSeq"), 
+                outcomes = c("HSE", "modBiopSeq"), 
                 probs = c(pSevBiopsy, Inf))  + 
   event_mapping(event = "modBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "HSE"), 
+                outcomes = c("HSE", "HSE"), 
                 probs = c(pModBiopsy, Inf))  + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopAvail", "BiopAvail"), 
+                outcomes = c("BiopAvail", "BiopAvail"), 
                 probs = c(pHSE, Inf))  +
   event_mapping(event = "BiopAvail",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopRes", "die"), 
+                outcomes = c("BiopRes", "die"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "BiopRes",  
                 #values = c("Positive", "Negative"), 
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pBiopRes(HSE), Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pDieHSE, pDieNoHSE, fDie, addProbDie), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pSevHSE, pSevNoHSE, fSev, addProbSev), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pModHSE, pModNoHSE, fMod, addProbMod), Inf)) + 
-  payoffs(util = util(decision, outcome, sevBiopSeq, modBiopSeq))
+  payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))
 
 model_struc <- gmod_build(mygmod)
 model_struc
@@ -187,8 +187,8 @@ pEvent <- function(HSE, decision, pEventHSE, pEventNoHSE, fEvent, addProbEvent){
   }
 }
 
-util <- function(outcome){
-  switch(outcome,
+util <- function(final_outcome){
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev, 
          "MODSEQHSE" = uMod, 
@@ -198,27 +198,27 @@ util <- function(outcome){
 # GMOD =========
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pHSE, Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pEvent(HSE, decision, pDieHSE, pDieNoHSE, fDie, addProbDie), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pEvent(HSE, decision, pSevHSE, pSevNoHSE, fSev, addProbSev), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pEvent(HSE, decision, pModHSE, pModNoHSE, fMod, addProbMod), Inf)) + 
-  payoffs(util = util(outcome))
+  payoffs(util = util(final_outcome))
 
 model_struc <- gmod_build(mygmod)
-View(model_struc$outcome_formulae)
+View(model_struc$final_outcome_formulae)
 # model_num_struc <- gmod_parse(model_struc, params = NULL)
 # model_num_struc
 model_res <- gmod_evaluate(model_struc, params = NULL)
@@ -315,8 +315,8 @@ pModSeq <- function(HSE, decision){
   }
 }
 
-util <- function(outcome){
-  switch(outcome,
+util <- function(final_outcome){
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev, 
          "MODSEQHSE" = uMod, 
@@ -326,27 +326,27 @@ util <- function(outcome){
 # GMOD =========
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pHSE, Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pDie(HSE, decision), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pSevSeq(HSE, decision), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pModSeq(HSE, decision), Inf)) + 
-  payoffs(util = util(outcome))
+  payoffs(util = util(final_outcome))
 
 model_struc <- gmod_build(mygmod)
-View(model_struc$outcome_formulae)
+View(model_struc$final_outcome_formulae)
 # model_num_struc <- gmod_parse(model_struc, params = NULL)
 # model_num_struc
 model_res <- gmod_evaluate(model_struc, params = NULL)
@@ -402,8 +402,8 @@ pModSeq <- function(HSE, decision){
   (decision=="NoBiopsy_NoTreat")*(HSE*pModHSE + (!HSE)*pModNoHSE) + 
   (decision=="NoBiopsy_Treat")*(HSE*(1-fMod)*pModHSE + (!HSE)*(pModNoHSE+addProbMod-pModNoHSE*addProbMod))
 }
-util <- function(outcome){
-  switch(outcome,
+util <- function(final_outcome){
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev, 
          "MODSEQHSE" = uMod, 
@@ -413,27 +413,27 @@ util <- function(outcome){
 # GMOD =========
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pHSE, Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pDie(HSE, decision), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pSevSeq(HSE, decision), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pModSeq(HSE, decision), Inf)) + 
-  payoffs(util = util(outcome))
+  payoffs(util = util(final_outcome))
 
 model_struc <- gmod_build(mygmod)
-View(model_struc$outcome_formulae)
+View(model_struc$final_outcome_formulae)
 # model_num_struc <- gmod_parse(model_struc, params = NULL)
 # model_num_struc
 model_res <- gmod_evaluate(model_struc, params = NULL)
@@ -506,7 +506,7 @@ pBiopRes <- function(HSE){
   HSE*sensBiopsy + (!HSE)*(1-specBiopsy)
 }
 
-util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
+util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
   if (decision=="BrainBiopsy"){
     if (sevBiopSeq){
       uMult <- uSev
@@ -523,7 +523,7 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
   # uMult <- (decision=="BrainBiopsy")*(sevBiopSeq*uSev + modBiopSeq*uMod + (!modBiopSeq)*uMld) + 
   #   (decision!="BrainBiopsy")
   print(uMult)
-  switch(outcome,
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev*uMult, 
          "MODSEQHSE" = uMod*uMult, 
@@ -533,49 +533,49 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
 ## GMOD =========
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  #outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  #final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "Biopsy",  
                 values = c(TRUE, FALSE), 
-                results = c("dieBiop", "HSE"), 
+                outcomes = c("dieBiop", "HSE"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "dieBiop",  
                 values = c(TRUE, FALSE), 
-                results = c("DEAD", "sevBiopSeq"), 
+                outcomes = c("DEAD", "sevBiopSeq"), 
                 probs = c(pDieBiopsy, Inf))  + 
   event_mapping(event = "sevBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "modBiopSeq"), 
+                outcomes = c("HSE", "modBiopSeq"), 
                 probs = c(pSevBiopsy, Inf))  + 
   event_mapping(event = "modBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "HSE"), 
+                outcomes = c("HSE", "HSE"), 
                 probs = c(pModBiopsy, Inf))  + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopAvail", "BiopAvail"), 
+                outcomes = c("BiopAvail", "BiopAvail"), 
                 probs = c(pHSE, Inf))  +
   event_mapping(event = "BiopAvail",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopRes", "die"), 
+                outcomes = c("BiopRes", "die"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "BiopRes",  
                 #values = c("Positive", "Negative"), 
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pBiopRes(HSE), Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pDie(HSE, decision, BiopRes), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pSevSeq(HSE, decision, BiopRes), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pModSeq(HSE, decision, BiopRes), Inf)) + 
-  payoffs(util = util(decision, outcome, sevBiopSeq, modBiopSeq))
+  payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))
 
 model_struc <- gmod_build(mygmod)
 model_struc
@@ -593,7 +593,7 @@ probs1 <- c(a1,a2)
 utils1 <- c(uDie, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uSev, uSev * uSev, uMod * uSev, uMld * uSev, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMod, uSev * uMod, uMod * uMod, uMld * uMod, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld, uDie * uMld, uSev * uMld, uMod * uMld, uMld * uMld)
 utils1_red <- c(uDie, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld)
 probs1 %*% utils1
-probs1 %*% utils1_red # doesn't multiply the outcome utilities by biopsy sequalae
+probs1 %*% utils1_red # doesn't multiply the final_outcome utilities by biopsy sequalae
   
 probs2 <- c(prod(c(pHSE, (1 - fDie) * pDieHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, (1 - fSev) * pSevHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, 1 - (1 - fSev) * pSevHSE, (1 - fMod) * pModHSE)), prod(c(pHSE, 1 - (1 - fDie) * pDieHSE, 1 - (1 - fSev) * pSevHSE, 1 - (1 - fMod) * pModHSE)), prod(c(1 - pHSE, pDieNoHSE + addProbDie - pDieNoHSE * addProbDie)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), pSevNoHSE + addProbSev - pSevNoHSE * addProbSev)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), 1 - (pSevNoHSE + addProbSev - pSevNoHSE * addProbSev), pModNoHSE + addProbMod - pModNoHSE * addProbMod)), prod(c(1 - pHSE, 1 - (pDieNoHSE + addProbDie - pDieNoHSE * addProbDie), 1 - (pSevNoHSE + addProbSev - pSevNoHSE * addProbSev), 1 - (pModNoHSE + addProbMod - pModNoHSE * addProbMod))))
 util2 <-  c(uDie, uSev, uMod, uMld, uDie, uSev, uMod, uMld)

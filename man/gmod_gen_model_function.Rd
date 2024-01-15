@@ -10,7 +10,7 @@ gmod_gen_model_function(x, ...)
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
 \description{
-runs the decision tree or markov model and returns the results either traces and summary results
+runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 }
 \examples{
 gmod_evaluate(numerical_model_structure)

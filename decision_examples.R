@@ -9,7 +9,7 @@ mygmod <- gmod(model_type = "Decision") +
   decisions("A", "B") + 
   event_mapping(event = "get_infection",  
                 values = c(T, F), 
-                results = c("Sick", "Healthy"), 
+                outcomes = c("Sick", "Healthy"), 
                 probs = c(pSick(decision), Inf)) + 
   payoffs(utility = )
 
@@ -29,15 +29,15 @@ pDie("Antibiotics")
 
 mygmod <- gmod(model_type = "Decision") + 
   decisions("Amputate", "Antibiotics") + 
-  #outcomes("Dead", "Alive") +
+  #final_outcomes("Dead", "Alive") +
   #events("EVENT1", "DIE") + 
   event_mapping(event = "COMPL",  
                 values = c(T, F), 
-                results = c("DIE", "DIE"), 
+                outcomes = c("DIE", "DIE"), 
                 probs = c(0.6, Inf))  + 
   event_mapping(event = "DIE",  
             values = c(T, F), 
-            results = c("Dead", "Alive"), 
+            outcomes = c("Dead", "Alive"), 
             probs = c(pDie(decision), Inf)) 
 
 model_struc <- gmod_build(mygmod)
@@ -94,44 +94,44 @@ c_HVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
 
-cost <- function(decision, outcome){ #}, propHVE){
+cost <- function(decision, final_outcome){ #}, propHVE){
   c_biopsy*(decision=="Biopsy") + 
-    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
-    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & final_outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
     #c_HVE*propHVE
 }
-effectiveness <- function(decision, outcome){
+effectiveness <- function(decision, final_outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
-    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+    q_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp"))
 }
 cost("Biopsy", "HVE_comp")
 effectiveness("Biopsy", "Death")
 
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
-  #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
+  #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
             values = c(T, F), 
-            results = c("Death", "HVE"), 
+            outcomes = c("Death", "HVE"), 
             probs = c(pDie(decision), Inf)) + 
   event_mapping(event = "HVE",  
             values = c(T, F), 
-            results = c("get_HVE_comp", "get_OVE_comp"), 
+            outcomes = c("get_HVE_comp", "get_OVE_comp"), 
             probs = c(p_HVE, Inf)) +
   event_mapping(event = "get_HVE_comp", 
             values = c(T, F),
-            results = c("HVE_comp", "no_HVE_comp"),
+            outcomes = c("HVE_comp", "no_HVE_comp"),
             probs = c(p_comp(decision, HVE = TRUE), Inf))  +
   event_mapping(event = "get_OVE_comp", 
             values = c(T, F),
-            results = c("OVE_comp", "no_OVE_comp"),
+            outcomes = c("OVE_comp", "no_OVE_comp"),
             probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
-  #payoffs(cost = cost(decision, outcome, prop_with_event("HVE"=TRUE, decision)), 
-  payoffs(cost = cost(decision, outcome),  
-          effectiveness = effectiveness(decision, outcome))
+  #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
+  payoffs(cost = cost(decision, final_outcome),  
+          effectiveness = effectiveness(decision, final_outcome))
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
@@ -187,37 +187,37 @@ p_comp(decision = "Biopsy", HVE = TRUE)
 f_HVE <- function(DIE){
   (!DIE) * p_HVE
 }
-cost <- function(decision, outcome){ #}, propHVE){
+cost <- function(decision, final_outcome){ #}, propHVE){
   c_biopsy*(decision=="Biopsy") + 
-    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
-    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & final_outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp")) #+
   #c_HVE*propHVE
 }
-effectiveness <- function(decision, outcome){
+effectiveness <- function(decision, final_outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
-    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+    q_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp"))
 }
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
-  #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
+  #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
                 values = c(T, F), 
-                results = c("Death", "HVE"), 
+                outcomes = c("Death", "HVE"), 
                 probs = c(pDie(decision), Inf)) + 
   event_mapping(event = "HVE",  
                 values = c(T, F), 
-                results = c("get_comp", "get_comp"), 
+                outcomes = c("get_comp", "get_comp"), 
                 #probs = c(f_HVE(prev_event("DIE")), Inf)) +
                 probs = c(p_HVE, Inf)) +
   event_mapping(event = "get_comp", 
                 values = c(T, F),
-                results = c("comp", "no_comp"),
+                outcomes = c("comp", "no_comp"),
                 probs = c(p_comp(decision, HVE), Inf)) + 
-  payoffs(cost = cost(decision, outcome),  
-          effectiveness = effectiveness(decision, outcome))
+  payoffs(cost = cost(decision, final_outcome),  
+          effectiveness = effectiveness(decision, final_outcome))
 
 model_struc <- gmod_build(mygmod)
 #model_num_struc <- gmod_parse(model_struc, params = NULL)
@@ -280,46 +280,46 @@ cHVE <- function(decision){
   if (decision == "Biopsy") c_tx else 0
 }
 
-cost <- function(decision, outcome){ 
+cost <- function(decision, final_outcome){ 
   c_biopsy*(decision=="Biopsy") + 
-    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
-    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & final_outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp"))
   }
-effectiveness <- function(decision, outcome){
+effectiveness <- function(decision, final_outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
-    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+    q_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp"))
 }
 cost("Biopsy", "HVE_comp")
 effectiveness("Biopsy", "Death")
 
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
-  #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
+  #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
                 values = c(T, F), 
-                results = c("Death", "HVE"), 
+                outcomes = c("Death", "HVE"), 
                 probs = c(pDie(decision), Inf), 
                 payoffs = list(cost = c(cDie(decision), cNotDie), 
                                effectiveness = c(eDie, eNotDie))) + 
   event_mapping(event = "HVE",  
                 values = c(T, F), 
-                results = c("get_HVE_comp", "get_OVE_comp"), 
+                outcomes = c("get_HVE_comp", "get_OVE_comp"), 
                 probs = c(p_HVE, Inf),
                 payoffs = list(cost = c(cHVE(decision), NA))) +
   event_mapping(event = "get_HVE_comp", 
                 values = c(T, F),
-                results = c("HVE_comp", "no_HVE_comp"),
+                outcomes = c("HVE_comp", "no_HVE_comp"),
                 probs = c(p_comp(decision, HVE = TRUE), Inf))  +
   event_mapping(event = "get_OVE_comp", 
                 values = c(T, F),
-                results = c("OVE_comp", "no_OVE_comp"),
+                outcomes = c("OVE_comp", "no_OVE_comp"),
                 probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
-  #payoffs(cost = cost(decision, outcome, prop_with_event("HVE"=TRUE, decision)), 
-  payoffs(cost = cost(decision, outcome, HVE),  
-          effectiveness = effectiveness(decision, outcome, DIE))
+  #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
+  payoffs(cost = cost(decision, final_outcome, HVE),  
+          effectiveness = effectiveness(decision, final_outcome, DIE))
 
 model_struc <- gmod_build(mygmod)
 model_num_struc <- gmod_parse(model_struc, params = NULL)
@@ -375,7 +375,7 @@ v_w_biopsy <- c(p_biopsy_death                   ,  # biopsy death
                 # no biopsy death.,        OVE,     no complications
                 (1-p_biopsy_death)   * (1-p_HVE) * (1 - p_OVE_comp))      
 
-# Create vector of outcomes (QALYs) for each strategy 
+# Create vector of final_outcomes (QALYs) for each strategy 
 
 v_qaly_no_tx  <- c(q_VE_comp ,          # HVE, complications
                    q_VE      ,          # HVE, no complications
@@ -432,7 +432,7 @@ v_total_cost <- c(total_cost_no_tx, total_cost_tx, total_cost_biopsy)
 # calculate vector of nmb
 v_nmb        <- v_total_qaly * wtp - v_total_cost                      
 
-# Name outcomes
+# Name final_outcomes
 names(v_total_qaly) <- v_names_str  # names for the elements of the total QALYs vector
 names(v_total_cost) <- v_names_str  # names for the elements of the total cost vector
 names(v_nmb)        <- v_names_str  # names for the elements of the nmb vector

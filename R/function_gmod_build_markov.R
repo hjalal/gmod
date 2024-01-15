@@ -64,8 +64,8 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
   n_cycles <- gmod_obj$n_cycles
   # get expanded states 
 
-  # outcomes <- model_obj$outcomes
-  # n_outcomes <- model_obj$n_outcomes
+  # final_outcomes <- model_obj$final_outcomes
+  # n_final_outcomes <- model_obj$n_final_outcomes
   events <- model_obj$events
   n_events <- model_obj$n_events
   events_df <- get_event_df(gmod_obj)
@@ -81,13 +81,13 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
     # get probabililites of transitioning to each state
     gmod_obj <- get_prob_chain_markov(gmod_obj, events_df, end_state = dest)
     # get probabilities of staying at the same state
-    #vec_p_stay[outcome] <- get_prob_chain(gmod_obj, events_df, end_outcome = "curr_outcome")
+    #vec_p_stay[final_outcome] <- get_prob_chain(gmod_obj, events_df, end_final_outcome = "curr_final_outcome")
   }
   gmod_obj <- get_prob_chain_markov(gmod_obj, events_df, end_state = "curr_state")
   
   path_df <- dplyr::bind_rows(gmod_obj$path_df_list) %>% 
     dplyr::inner_join(events_df, by = c("chain_id" = "id")) #%>% 
-    #dplyr::mutate(results = ifelse(results == "curr_state", dest, results))
+    #dplyr::mutate(outcomes = ifelse(outcomes == "curr_state", dest, outcomes))
   
   # add originating states 
   states_df <- data.frame(state = states) 
@@ -183,7 +183,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
     dplyr::ungroup() %>% 
     dplyr::select(-events, -path_id, -payoff_names) %>%
     dplyr::group_by(dplyr::across(-c(probs))) %>% 
-    dplyr::summarize(probs = paste0(probs, collapse="+"))
+    dplyr::summarize(probs = paste0(probs, collapse="+\n\t"))
   
   
   # group payoffs by originating state, decision, cycle
@@ -191,7 +191,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
     dplyr::ungroup() %>% 
     dplyr::select(-events, -dest_expanded, -dest, -dest_idx, -path_id, -probs) %>% 
     dplyr::group_by(dplyr::across(-payoff_names)) %>% 
-    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse="+")))
+    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse="+\n\t")))
   
   model_obj$markov_eqns <- path_df6
   model_obj$payoff_eqns <- path_df7
@@ -229,9 +229,9 @@ tunnel_states <- function(gmod_obj){
 
 extract_tunnel_states <- function(input_string){
   # Extract endings of words starting with 'cycle_in_'
-  result <- stringr::str_extract_all(input_string, "\\bcycle_in_(\\w+)\\b")[[1]]
+  outcome <- stringr::str_extract_all(input_string, "\\bcycle_in_(\\w+)\\b")[[1]]
   # Remove the 'cycle_in_' prefix
-  sub("^cycle_in_", "", result)
+  sub("^cycle_in_", "", outcome)
 }
 
 is_cycle_dep <- function(gmod_obj){

@@ -4,14 +4,14 @@
 \alias{event_mapping}
 \title{Add event mapping}
 \usage{
-event_mapping(event, values, results, probs, payoffs = NULL)
+event_mapping(event, values, outcomes, probs, payoffs = NULL)
 }
 \arguments{
 \item{event}{}
 
 \item{values}{}
 
-\item{results}{}
+\item{outcomes}{}
 
 \item{probs}{}
 
@@ -26,7 +26,7 @@ Add event mapping
 \examples{
 event_mapping(event = "event_progress", 
 values = c(TRUE,FALSE), 
-results = c("Severe",curr_state()), 
+outcomes = c("Severe",curr_state()), 
 probs = c(p_progress_function(state), Inf), 
 payoffs = list(cost = c(cProgress, cNotProgress)))
 }

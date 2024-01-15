@@ -15,7 +15,7 @@ gmod_parse(x, ...)
 a nuemerical gmod object structure
 }
 \description{
-parses the string formulae and computes the numerical results
+parses the string formulae and computes the numerical outcomes
 }
 \examples{
 gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))

@@ -34,12 +34,12 @@ mygmod <- gmod() +
   # previous event() 
   event_mapping(name = "DIE",  
             values = c(T, F), 
-            results = c("Dead", "PROGRESS"), 
+            outcomes = c("Dead", "PROGRESS"), 
             # probs - can also ignore the last entry - assumed = remainder()
             probs = c(f(curr_state), prob_left())) +
   event_mapping(name = "PROGRESS", 
             values = c(T, F), 
-            results = c("Severe", stay()), 
+            outcomes = c("Severe", stay()), 
             probs = c(f(current_state(), decision()), prob_left()))
 
 mygmod

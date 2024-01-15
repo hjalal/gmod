@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 This is an example that we use to illustrate decision trees in our DARTH teaching materials.  The example involves the treatment of herpes simplex ecncephalopathy (HVE) by either treating everyone without biopsy (Treat), not treating or taking biopsy (DoNotTreat), and Taking biopsy and treat if biopsy posivite (Biopsy). 
 
-We will first define the gmod model and the parameters and then we will show how one would code the model direclty in R and compare the results. 
+We will first define the gmod model and the parameters and then we will show how one would code the model direclty in R and compare the outcomes. 
 
 # GMOD
 ```{r setup}
@@ -30,27 +30,27 @@ p_comp() takes in two arguments, one is the special keyword decision, and the ot
 ```{r}
 mygmod <- gmod(model_type = "Decision") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
-  #outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
+  #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
             values = c(T, F), 
-            results = c("Death", "HVE_event"), 
+            outcomes = c("Death", "HVE_event"), 
             probs = c(pDie(decision), Inf)) + 
   event_mapping(event = "HVE_event",  
             values = c(T, F), 
-            results = c("get_HVE_comp", "get_OVE_comp"), 
+            outcomes = c("get_HVE_comp", "get_OVE_comp"), 
             probs = c(p_HVE, Inf)) +
   event_mapping(event = "get_HVE_comp", 
             values = c(T, F),
-            results = c("HVE_comp", "no_HVE_comp"),
+            outcomes = c("HVE_comp", "no_HVE_comp"),
             probs = c(p_comp(decision, HVE = TRUE), Inf))  +
   event_mapping(event = "get_OVE_comp", 
             values = c(T, F),
-            results = c("OVE_comp", "no_OVE_comp"),
+            outcomes = c("OVE_comp", "no_OVE_comp"),
             probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
-  #payoffs(cost = cost(decision, outcome, prop_with_event("HVE"=TRUE, decision)), 
-  payoffs(cost = cost(decision, outcome),  
-          effectiveness = effectiveness(decision, outcome))
+  #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
+  payoffs(cost = cost(decision, final_outcome),  
+          effectiveness = effectiveness(decision, final_outcome))
 
 ```
 
@@ -129,17 +129,17 @@ c_HVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
 
-cost <- function(decision, outcome){ 
+cost <- function(decision, final_outcome){ 
   c_biopsy*(decision=="Biopsy") + 
-    c_tx*(decision=="Treat" | (decision=="Biopsy" & outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
-    c_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    c_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp")) 
+    c_tx*(decision=="Treat" | (decision=="Biopsy" & final_outcome %in% c("HVE_comp", "no_HVE_comp"))) + 
+    c_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    c_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp")) 
 }
 
-effectiveness <- function(decision, outcome){
+effectiveness <- function(decision, final_outcome){
   -q_loss_biopsy*(decision=="Biopsy") + 
-    q_VE_comp*(outcome %in% c("HVE_comp", "OVE_comp")) + 
-    q_VE*(outcome %in% c("no_HVE_comp", "no_OVE_comp"))
+    q_VE_comp*(final_outcome %in% c("HVE_comp", "OVE_comp")) + 
+    q_VE*(final_outcome %in% c("no_HVE_comp", "no_OVE_comp"))
 }
 ```
 
@@ -191,7 +191,7 @@ v_w_biopsy <- c(p_biopsy_death                   ,  # biopsy death
                # no biopsy death.,        OVE,     no complications
                (1-p_biopsy_death)   * (1-p_HVE) * (1 - p_OVE_comp))      
   
-# Create vector of outcomes (QALYs) for each strategy 
+# Create vector of final_outcomes (QALYs) for each strategy 
   
 v_qaly_no_tx  <- c(q_VE_comp ,          # HVE, complications
                    q_VE      ,          # HVE, no complications
@@ -248,7 +248,7 @@ v_total_cost <- c(total_cost_no_tx, total_cost_tx, total_cost_biopsy)
 # calculate vector of nmb
 v_nmb        <- v_total_qaly * wtp - v_total_cost                      
   
-# Name outcomes
+# Name final_outcomes
 names(v_total_qaly) <- v_names_str  # names for the elements of the total QALYs vector
 names(v_total_cost) <- v_names_str  # names for the elements of the total cost vector
 names(v_nmb)        <- v_names_str  # names for the elements of the nmb vector

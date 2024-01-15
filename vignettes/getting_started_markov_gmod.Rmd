@@ -13,11 +13,11 @@ The purpose of this vignette is to provide a step by step guide to illustrate th
 * definitions: 
   * states
   * events
-  * final outcomes
-  * intermediate outcomes
+  * final final_outcomes
+  * intermediate final_outcomes
   * payoffs 
 * distinguishing between states and events
-* examining the resulting equations and formulae
+* examining the outcomeing equations and formulae
 * adding discounting factors
 * adding events
 * accessing prior (upstream event values)
@@ -41,7 +41,7 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 2) +
   initial_probs(states = "H", probs = 1) +  
   event_mapping(event = "die",  
                 values = c(F, T), 
-                results = c(curr_state(), "D"), 
+                outcomes = c(curr_state(), "D"), 
                 probs = c(Inf, pDie(state))) 
 mygmod
 ```

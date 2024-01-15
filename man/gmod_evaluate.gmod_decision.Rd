@@ -10,7 +10,7 @@
 \item{model_num_struc}{a matrix containing the numerical gmod decision object from the gmod_parse() function}
 }
 \description{
-runs the decision model and returns the expected payoff values and summary results
+runs the decision model and returns the expected payoff values and summary outcomes
 }
 \examples{
 gmod_evaluate(numerical_model_structure)

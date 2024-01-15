@@ -22,7 +22,7 @@ Doubilet, P., Begg, C. B., Weinstein, M. C., Braun, P., & McNeil, B. J. (1985). 
 It has the following features:
 
 * How to control asymetrical decision branches - where the events are dependent on the decision
-* How to make the probability of an event outcome based on the value of a prior (upstream) event
+* How to make the probability of an event final_outcome based on the value of a prior (upstream) event
 * How to make utility a function of a prior (upstream) event
 
 ```{r setup}
@@ -63,55 +63,55 @@ uMld = 1
 )
 ```
 
-This structure is meant to reproduce the tree structure as presented in Doubilet et al.  However, their tree uses a binary biforcation, where each event can either be TRUE or FASLE.  Below we simplify this tree structure by adding more outcomes to each decision branch.  The results are identical. 
+This structure is meant to reproduce the tree structure as presented in Doubilet et al.  However, their tree uses a binary biforcation, where each event can either be TRUE or FASLE.  Below we simplify this tree structure by adding more final_outcomes to each decision branch.  The outcomes are identical. 
 
-## Binary event outcomes similar to Doubilet 1985
+## Binary event final_outcomes similar to Doubilet 1985
 ```{r}
 mygmod <- gmod(model_type = "Decision") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
-  #outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
+  #final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event_mapping(event = "Biopsy",  
                 values = c(TRUE, FALSE), 
-                results = c("dieBiop", "HSE"), 
+                outcomes = c("dieBiop", "HSE"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "dieBiop",  
                 values = c(TRUE, FALSE), 
-                results = c("DEAD", "sevBiopSeq"), 
+                outcomes = c("DEAD", "sevBiopSeq"), 
                 probs = c(pDieBiopsy, Inf))  + 
   event_mapping(event = "sevBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "modBiopSeq"), 
+                outcomes = c("HSE", "modBiopSeq"), 
                 probs = c(pSevBiopsy, Inf))  + 
   event_mapping(event = "modBiopSeq",  
                 values = c(TRUE, FALSE), 
-                results = c("HSE", "HSE"), 
+                outcomes = c("HSE", "HSE"), 
                 probs = c(pModBiopsy, Inf))  + 
   event_mapping(event = "HSE",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopAvail", "BiopAvail"), 
+                outcomes = c("BiopAvail", "BiopAvail"), 
                 probs = c(pHSE, Inf))  +
   event_mapping(event = "BiopAvail",  
                 values = c(TRUE, FALSE), 
-                results = c("BiopRes", "die"), 
+                outcomes = c("BiopRes", "die"), 
                 probs = c(pBiopsy(decision), Inf))  + 
   event_mapping(event = "BiopRes",  
                 #values = c("Positive", "Negative"), 
                 values = c(TRUE, FALSE), 
-                results = c("die", "die"), 
+                outcomes = c("die", "die"), 
                 probs = c(pBiopRes(HSE), Inf))  + 
   event_mapping(event = "die",  
                 values = c(T, F), 
-                results = c("DEAD", "sevSeqHSE"), 
+                outcomes = c("DEAD", "sevSeqHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pDieHSE, pDieNoHSE, fDie, addProbDie), Inf)) +
   event_mapping(event = "sevSeqHSE",  
                 values = c(T, F), 
-                results = c("SEVSEQHSE", "modSeqHSE"), 
+                outcomes = c("SEVSEQHSE", "modSeqHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pSevHSE, pSevNoHSE, fSev, addProbSev), Inf)) +
   event_mapping(event = "modSeqHSE",  
                 values = c(T, F), 
-                results = c("MODSEQHSE", "MLDSEQHSE"), 
+                outcomes = c("MODSEQHSE", "MLDSEQHSE"), 
                 probs = c(pEvent(HSE, decision, BiopRes, pModHSE, pModNoHSE, fMod, addProbMod), Inf)) + 
-  payoffs(util = util(decision, outcome, sevBiopSeq, modBiopSeq))
+  payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))
 
 ```
 
@@ -145,7 +145,7 @@ pBiopRes <- function(HSE){
 ```
 
 ```{r}
-util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
+util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
   if (decision=="BrainBiopsy"){
     if (!is.na(sevBiopSeq) & sevBiopSeq){
       uMult <- uSev
@@ -162,7 +162,7 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
   # uMult <- (decision=="BrainBiopsy")*(sevBiopSeq*uSev + modBiopSeq*uMod + (!modBiopSeq)*uMld) + 
   #   (decision!="BrainBiopsy")
   #print(uMult)
-  switch(outcome,
+  switch(final_outcome,
          "DEAD" = uDie,
          "SEVSEQHSE" = uSev*uMult, 
          "MODSEQHSE" = uMod*uMult, 
@@ -173,6 +173,21 @@ util <- function(decision, outcome, sevBiopSeq, modBiopSeq){
 
 ```{r}
 model_struc <- gmod_build(mygmod)
+model_struc
+```
+
+
+```{r}
+gmod_gen_model_function(model_struc, model_function_name = "doubilet_1985_model")
+```
+
+```{r}
+doubilet_1985_model(params)
+```
+
+### with simplification - where paths that generate 0 prob are removed
+```{r}
+model_struc <- gmod_build(mygmod, params = params, simplify = TRUE)
 model_struc
 ```
 
@@ -200,8 +215,8 @@ knitr::include_graphics("Doubilet_1985_diagram_OpenTree.png")
 ```
 
 
-## Multiple outcomes per event
-The impact of reducing the binary outcomes on the gmod structure.
+## Multiple final_outcomes per event
+The impact of reducing the binary final_outcomes on the gmod structure.
 ```{r}
 
 ```

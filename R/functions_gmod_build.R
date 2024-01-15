@@ -47,7 +47,7 @@ gmod <- function(model_type, n_cycles = 50) {
 #'
 #' @param event 
 #' @param values 
-#' @param results 
+#' @param outcomes 
 #' @param probs 
 #' @param payoffs 
 #'
@@ -56,11 +56,11 @@ gmod <- function(model_type, n_cycles = 50) {
 #'
 #' @examples event_mapping(event = "event_progress", 
 #' values = c(TRUE,FALSE), 
-#' results = c("Severe",curr_state()), 
+#' outcomes = c("Severe",curr_state()), 
 #' probs = c(p_progress_function(state), Inf), 
 #' payoffs = list(cost = c(cProgress, cNotProgress)))
 
-event_mapping <- function(event, values, results, probs, payoffs=NULL){
+event_mapping <- function(event, values, outcomes, probs, payoffs=NULL){
   # events are the links that can either go to states or other events
   input_string <- paste0(deparse(substitute(probs)), collapse = "")
   
@@ -72,7 +72,7 @@ event_mapping <- function(event, values, results, probs, payoffs=NULL){
   list(type = "event", 
        event = event, 
        values = values, 
-       results = results, 
+       outcomes = outcomes, 
        probs = probs2string(input_string),
        payoffs = payoffs_string
   )
@@ -134,16 +134,16 @@ states <- function(...){
   list(type = "states", states = c(...))
 }
 
-#' Add outcomes from a decision tree to a gmod
+#' Add final_outcomes from a decision tree to a gmod
 #'
-#' @param ... Decision outcome names
+#' @param ... Decision final_outcome names
 #'
-#' @return a gmod layer with Decision Outcome names
+#' @return a gmod layer with Decision final_outcome names
 #' @export
 #'
-#' @examples outcomes("Alive", "Dead")
-outcomes <- function(...){
-  list(type = "outcomes", outcomes = c(...))
+#' @examples final_outcomes("Alive", "Dead")
+final_outcomes <- function(...){
+  list(type = "final_outcomes", final_outcomes = c(...))
 }
 
 #' Add payoffs to a gmod

@@ -1,5 +1,5 @@
 #' Runs a decision tree or Markov model
-#' @description runs the decision tree or markov model and returns the results either traces and summary results
+#' @description runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #'
 #' @return
@@ -9,7 +9,7 @@
 gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 
 #' Runs the markov model
-#' @description runs the markov model and returns the traces and summary results
+#' @description runs the markov model and returns the traces and summary outcomes
 #' @param model_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #' @export
 #' 
@@ -17,7 +17,7 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
-  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_results=FALSE){")
+  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_outcomes=FALSE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
   #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
@@ -86,10 +86,10 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   
   #model_lines <- c(model_lines, "detach(params)")
   
-  # suppress outcomes, if only the summary results is needed
+  # suppress final_outcomes, if only the summary outcomes is needed
   model_lines <- c(model_lines, "if(return_payoffs) model_results$Payoff <- Payoff")
   model_lines <- c(model_lines, "if(!return_trace) model_results$Trace <- NULL")
-  model_lines <- c(model_lines, "if(!return_detailed_results) model_results$Results_detailed <- NULL")
+  model_lines <- c(model_lines, "if(!return_detailed_outcomes) model_results$Results_detailed <- NULL")
   model_lines <- c(model_lines, "if(return_transition_prob) model_results$P <- P")
   
   model_lines <- c(model_lines, "model_results$Summary <- mat_summary")
@@ -107,7 +107,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   assign(model_function_name, new_func, envir = .GlobalEnv)
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
              " is generated. It can be run by calling it directly:\n", model_function_name, 
-             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_results=FALSE)\033[0m\n"))
+             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
   return(TRUE)
 }
 
@@ -210,11 +210,19 @@ gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_na
   # for Decison structure, parse P and Payoffs 
   summary_formulae <- model_struc$summary_formulae
   payoff_names <- model_struc$payoff_names
+  decisions <- summary_formulae$decision
+  decisions_str <- paste0(decisions, collapse="','")
+  payoffs_str <- paste0(payoff_names, collapse="','")
+  n_decisions <- length(decisions)
+  n_payoffs <- length(payoff_names)
   n <- nrow(summary_formulae)
-  model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(summary_formulae$decision, collapse = "','"), "'))"))
+  #model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(summary_formulae$decision, collapse = "','"), "'))"))
+  model_lines <- c(model_lines, paste0("summary_results <- matrix(0,nrow=",n_decisions,",ncol=", n_payoffs, 
+                                       ",dimnames=list(c('",decisions_str,"'),c('",payoffs_str,"')))"))
   for (payoff_name in payoff_names){
     for (i in 1:n){
-      model_lines <- c(model_lines, paste0("summary_results[['", payoff_name, "']][",i, "] <- ", summary_formulae[[payoff_name]][i]))
+      decision <- summary_formulae$decision[i]
+      model_lines <- c(model_lines, paste0("summary_results['",decision,"','",payoff_name,"'] <- ", summary_formulae[[payoff_name]][i]))
     }
   }
   model_lines <- c(model_lines, "return(summary_results)")
