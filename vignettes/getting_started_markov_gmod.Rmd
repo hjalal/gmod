@@ -67,4 +67,17 @@ gmod_gen_model_function(model_struc)
 my_markov_model(return_transition_prob = T, return_trace = T)
 ```
 
+## with simplification / removing probs that equal and simplifying those that are 1.
+```{r}
+model_struc <- gmod_build(mygmod, params = list(), simplify = TRUE)
+model_struc
+```
+
+```{r}
+gmod_gen_model_function(model_struc)
+```
+
+```{r}
+my_markov_model(return_transition_prob = T, return_trace = T)
+```
 

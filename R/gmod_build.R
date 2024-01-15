@@ -17,7 +17,15 @@ gmod_build <- function(x, ...) UseMethod("gmod_build")
 #' @export
 #'
 #' @examples gmod_build(mygmod)
-gmod_build.gmod_markov <- function(gmod_obj){
+gmod_build.gmod_markov <- function(gmod_obj, params = NULL, simplify = FALSE){
+  if (simplify){
+    if (is.null(params)){
+      stop("simplify = TRUE. please provide a list of paramters to simplify the generated model structure by removing paths that generate 0 probabilities. Avoid passing probabilities that are either 0 or 1.")
+    } else { # not null params
+    list2env(params, envir = .GlobalEnv)
+    }
+  }
+  
   # here we will have an environment to parse the gmod_object
   n_cycles <- gmod_obj$n_cycles
   model_obj <- list()
@@ -37,7 +45,7 @@ gmod_build.gmod_markov <- function(gmod_obj){
   model_obj$events_df <- events_df
   model_obj$events_with_payoffs_df <- events_with_payoffs_df
   model_obj <- add_payoffs(gmod_obj, model_obj)
-  model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df)
+  model_obj <- add_markov_transition_eqns(gmod_obj, model_obj, events_df, simplify = simplify)
   #model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
   #model_obj <- add_event_prop_eqns(gmod_obj, model_obj, events_df, events_with_payoffs_df)
   #model_obj <- add_markov_event_payoff_eqns(gmod_obj, model_obj, events_df)

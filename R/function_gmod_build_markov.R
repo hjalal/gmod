@@ -55,7 +55,7 @@ add_markov_initial_probs <- function(gmod_obj, model_obj){
 }
 
 
-add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
+add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify = FALSE){
   states <- model_obj$states
   #n_states <- model_obj$n_states
   states_expanded <- model_obj$states_expanded
@@ -71,10 +71,8 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
   events_df <- get_event_df(gmod_obj)
   first_event <- get_first_event(events_df)
   
-  
   payoffs <- model_obj$payoffs
   payoff_names <- names(payoffs)
-  
   
   gmod_obj$path_id <- 0
   gmod_obj$path_df_list <- list()
@@ -91,7 +89,6 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
     dplyr::inner_join(events_df, by = c("chain_id" = "id")) #%>% 
     #dplyr::mutate(results = ifelse(results == "curr_state", dest, results))
   
-
   # add originating states 
   states_df <- data.frame(state = states) 
   path_df0 <- path_df %>% 
@@ -120,11 +117,6 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
     dplyr::rowwise() %>% 
     dplyr::mutate(dplyr::across(payoff_names, ~ gsub("\\bstate\\b", paste0("'",state,"'"), .x)),
            dplyr::across(payoff_names, ~ paste0(probs, "*(", .x, ")")))
-  
-  
-  
-
-  
   
   # deal with tunnels 
   # if there is a tunnel, loop through them and expand the state and dest columns
@@ -177,14 +169,25 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df){
       dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub("\\bcycle\\b", paste0("cycle=",cycle,""), .x)))
   }
   
+  if (simplify){ # remove when prob evaluates to 0. And convert to 1 when probability evaluates to 1.
+    path_df5 <- path_df5 %>%
+      dplyr::rowwise() %>% 
+      dplyr::mutate(prob_value = eval(parse(text = probs)))  %>%  # filter out probs that are evaluate to 0.
+      dplyr::filter(prob_value != 0) %>% 
+      dplyr::mutate(probs = ifelse(prob_value==1, "1", probs)) %>%
+      dplyr::select(-prob_value)
+  }
+  
   # group transition probs by originating state, dest state, decision and cycle
   path_df6 <- path_df5 %>% 
     dplyr::ungroup() %>% 
-    dplyr::select(-events, -path_id, -payoff_names) %>% 
+    dplyr::select(-events, -path_id, -payoff_names) %>%
     dplyr::group_by(dplyr::across(-c(probs))) %>% 
     dplyr::summarize(probs = paste0(probs, collapse="+"))
+  
+  
   # group payoffs by originating state, decision, cycle
-  path_df7 <- path_df5 %>% 
+  path_df7 <- path_df5 %>%
     dplyr::ungroup() %>% 
     dplyr::select(-events, -dest_expanded, -dest, -dest_idx, -path_id, -probs) %>% 
     dplyr::group_by(dplyr::across(-payoff_names)) %>% 

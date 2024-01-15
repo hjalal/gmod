@@ -17,7 +17,6 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
-  print(environment())
   model_lines <- paste0(model_function_name, "<- function(params=NULL,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_results=FALSE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
