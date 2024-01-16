@@ -183,7 +183,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
     dplyr::ungroup() %>% 
     dplyr::select(-events, -path_id, -payoff_names) %>%
     dplyr::group_by(dplyr::across(-c(probs))) %>% 
-    dplyr::summarize(probs = paste0(probs, collapse="+\n\t"))
+    dplyr::summarize(probs = paste0(probs, collapse="+")) #\n\t"))
   
   
   # group payoffs by originating state, decision, cycle
@@ -191,7 +191,7 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
     dplyr::ungroup() %>% 
     dplyr::select(-events, -dest_expanded, -dest, -dest_idx, -path_id, -probs) %>% 
     dplyr::group_by(dplyr::across(-payoff_names)) %>% 
-    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse="+\n\t")))
+    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse="+"))) #\n\t")))
   
   model_obj$markov_eqns <- path_df6
   model_obj$payoff_eqns <- path_df7

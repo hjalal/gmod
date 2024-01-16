@@ -73,7 +73,7 @@ add_decision_eqns <- function(gmod_obj, model_obj, simplify = FALSE){
   path_df4 <- path_df3 %>% 
     dplyr::ungroup() %>% 
     dplyr::group_by(decision) %>% 
-    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse = "+\n\t")))
+    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse = "+"))) #\n\t")))
   
   model_obj$summary_formulae <- path_df4
   return(model_obj)
