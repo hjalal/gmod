@@ -7,18 +7,20 @@ add_markov_info <- function(gmod_obj, model_obj){
   n_cycles <- gmod_obj$n_cycles
   
   tunnel_states <- model_obj$tunnel_states
-  if (length(tunnel_states) > 0){ #there are tunnel states
-    #for each tunnel state expand states vector
-    is_tunnel <- states %in% tunnel_states # F,T,F since severe is the tunnel state 
-    # now we need to expand the state space to incorporate the tunnels and all other vectors
-    rep_states <- is_tunnel * (n_cycles - 1) + 1 # {1, 40, 1} a trick to get number of replication for each state
-    states_expanded <- rep(states, rep_states)
-    for (tunnel_state in tunnel_states){
-      states_expanded[states_expanded == tunnel_state] <- paste0(tunnel_state, "_tnl", 1:n_cycles) # we need to replace severe with Severe Yr1, Severe Yr2, ... etc
+  tunnel_lengths <- model_obj$tunnel_lengths
+  
+  states_expanded <- character(0)
+  for (state in states){
+    if (state %in% tunnel_states){
+      tunnel_length <- tunnel_lengths[tunnel_states == state]
+      for (j in 1:tunnel_length){
+        states_expanded <- c(states_expanded, paste0(state, "_tnl", j))
+      }
+    } else {
+      states_expanded <- c(states_expanded, state)
     }
-  } else {
-    states_expanded <- states
   }
+  
   model_obj$states <- states
   model_obj$n_states <- length(states)
   model_obj$states_expanded <- states_expanded
@@ -55,7 +57,7 @@ add_markov_initial_probs <- function(gmod_obj, model_obj){
 }
 
 
-add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify = FALSE){
+add_markov_eqns <- function(gmod_obj, model_obj, events_df, simplify = FALSE){
   states <- model_obj$states
   #n_states <- model_obj$n_states
   states_expanded <- model_obj$states_expanded
@@ -80,122 +82,41 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
   for (dest in states){
     # get probabililites of transitioning to each state
     gmod_obj <- get_prob_chain_markov(gmod_obj, events_df, end_state = dest)
-    # get probabilities of staying at the same state
-    #vec_p_stay[final_outcome] <- get_prob_chain(gmod_obj, events_df, end_final_outcome = "curr_final_outcome")
   }
   gmod_obj <- get_prob_chain_markov(gmod_obj, events_df, end_state = "curr_state")
   
   path_df <- dplyr::bind_rows(gmod_obj$path_df_list) %>% 
-    dplyr::inner_join(events_df, by = c("chain_id" = "id")) #%>% 
-    #dplyr::mutate(outcomes = ifelse(outcomes == "curr_state", dest, outcomes))
-  
-  # add originating states 
-  states_df <- data.frame(state = states) 
-  path_df0 <- path_df %>% 
-    #crossing(decisions_df) %>% 
-    tidyr::crossing(states_df) %>% 
-    dplyr::mutate(dest = ifelse(dest == "curr_state", state, dest)) %>% 
-    dplyr::rowwise() %>% 
-    dplyr::mutate(probs = gsub("\\bstate\\b", paste0("'",state,"'"), probs))
+    dplyr::inner_join(events_df, by = c("chain_id" = "id")) 
   
   # collapse chain probs and create list of all events and values
-  path_df1 <- path_df0 %>% 
+  path_df1 <- path_df %>% 
     tidyr::pivot_wider(names_from = event, values_from = values) %>% #, values_fill = "FALSE")
-    dplyr::ungroup() %>%
-    dplyr::group_by(state, dest, path_id) %>% 
+    dplyr::group_by(dest, path_id) %>% 
     dplyr::summarize(probs = paste0("(",probs, ")",collapse = "*"), 
-              #dplyr::across(payoff_names, ~ paste0(.x, collapse="+")), 
-              dplyr::across(events, ~ event_value(.x)))
+                     dplyr::across(events, ~ event_value(.x)))
   
   # add payoffs ====
   for (payoff_name in payoff_names){
     path_df1[[payoff_name]] <- deparse(model_obj$payoffs[[payoff_name]])
   }
   
-  # compute weighted payoffs by probabilities 
-  path_df2 <- path_df1 %>%
-    dplyr::rowwise() %>% 
-    dplyr::mutate(dplyr::across(payoff_names, ~ gsub("\\bstate\\b", paste0("'",state,"'"), .x)),
-           dplyr::across(payoff_names, ~ paste0(probs, "*(", .x, ")")))
-  
-  # deal with tunnels 
-  # if there is a tunnel, loop through them and expand the state and dest columns
-  path_df3 <- path_df2
-  tunnel_states <- model_obj$tunnel_states
-  # n <- nrow(path_df3)
-  if (length(tunnel_states) > 0){
-    tunnel_df <- expand.grid(state = tunnel_states, state_idx = 1:(n_cycles-1))
-    path_df3 <- path_df3 %>% 
-      dplyr::left_join(tunnel_df, by = "state") %>% 
-      #dplyr::left_join(tunnel_df %>% rename(dest_idx = state_idx), by = c("dest"="state")) %>% 
-      dplyr::mutate(state_idx = ifelse(is.na(state_idx), 0, state_idx)) 
-  } else {
-    path_df3 <- path_df3 %>% 
-      dplyr::mutate(state_idx = 0, dest_idx = 0)
-  }
-  # replaces cycle_in_state with cycle_in_[STATE]=Tunnel No.
-  path_df4 <- path_df3 %>% 
-    dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub("cycle_in_(\\w+)", paste0("cycle_in_\\1=", state_idx), .x)), 
-       #gsub('cycle_in_state\\("([^"]+)"\\)', paste0("cycle_in_\\1","=",state_idx), .x)),
-           dest_idx = ifelse(state == dest & state_idx > 0, state_idx + 1, 0),
-           dest_idx = ifelse(state != dest & dest %in% tunnel_states, 1, dest_idx),
-           state_expanded = paste0(state, ifelse(state_idx==0,"", paste0("_tnl",state_idx))), 
-           dest_expanded = paste0(dest, ifelse(dest_idx==0,"",paste0("_tnl", dest_idx)))) #%>% 
-    #filter(dest_expanded %in% states_expanded)
-  # dest expanded can include some unexpanded states - these can be ignored in the evaluations
-  
-
-  
-  # replace event names in probabilities with event name value pairs 
-  path_df4$probs <- replace_event_with_value(x = path_df4$probs, input_df = path_df4, events = events)
+  # replace events with their values 
+  path_df1$probs <- replace_event_with_value(x = path_df1$probs, input_df = path_df1, events = events)
   for (payoff_name in payoff_names){
-    path_df4[[payoff_name]] <- replace_event_with_value(x = path_df4[[payoff_name]], input_df = path_df4, events = events)
+    path_df1[[payoff_name]] <- replace_event_with_value(x = path_df1[[payoff_name]], input_df = path_df1, events = events)
   }
   
-  # add decisions
-  decisions_df <- data.frame(decision = model_obj$decisions)
-  path_df5 <- path_df4 %>% 
-    tidyr::crossing(decisions_df) %>% 
-    dplyr::rowwise() %>% 
-    dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub("\\bdecision\\b", paste0("'",decision,"'"), .x)))
+  # aggregate over destination states 
+  # try without aggregation - aggregate probs in the gmod_gen function
+  # keeps curr_state 
+  path_df2 <- path_df1 #%>% 
+    # dplyr::rowwise() %>% 
+    # dplyr::mutate(dplyr::across(payoff_names, ~ paste0(probs, "*", .x))) %>% 
+    # dplyr::group_by(dest) %>% 
+    # dplyr::summarize(dplyr::across(c(probs, payoff_names), ~ paste0(.x, collapse="+")))
+    # 
+  model_obj$model_equations <- path_df2
   
-  
-  # add cycle column and parse if cycle dependent
-  if (model_obj$is_cycle_dep){
-    cycles_df <- data.frame(cycle = 1:n_cycles)
-    path_df5 <- path_df5 %>% 
-      tidyr::crossing(cycles_df) %>% 
-      dplyr::rowwise() %>% 
-      dplyr::mutate(dplyr::across(c(probs, payoff_names), ~ gsub("\\bcycle\\b", paste0("cycle=",cycle,""), .x)))
-  }
-  
-  if (simplify){ # remove when prob evaluates to 0. And convert to 1 when probability evaluates to 1.
-    path_df5 <- path_df5 %>%
-      dplyr::rowwise() %>% 
-      dplyr::mutate(prob_value = eval(parse(text = probs)))  %>%  # filter out probs that are evaluate to 0.
-      dplyr::filter(prob_value != 0) %>% 
-      dplyr::mutate(probs = ifelse(prob_value==1, "1", probs)) %>%
-      dplyr::select(-prob_value)
-  }
-  
-  # group transition probs by originating state, dest state, decision and cycle
-  path_df6 <- path_df5 %>% 
-    dplyr::ungroup() %>% 
-    dplyr::select(-events, -path_id, -payoff_names) %>%
-    dplyr::group_by(dplyr::across(-c(probs))) %>% 
-    dplyr::summarize(probs = paste0(probs, collapse="+")) #\n\t"))
-  
-  
-  # group payoffs by originating state, decision, cycle
-  path_df7 <- path_df5 %>%
-    dplyr::ungroup() %>% 
-    dplyr::select(-events, -dest_expanded, -dest, -dest_idx, -path_id, -probs) %>% 
-    dplyr::group_by(dplyr::across(-payoff_names)) %>% 
-    dplyr::summarize(dplyr::across(payoff_names, ~ paste0(.x, collapse="+"))) #\n\t")))
-  
-  model_obj$markov_eqns <- path_df6
-  model_obj$payoff_eqns <- path_df7
-
   return(model_obj)
 }
 
@@ -204,35 +125,23 @@ add_markov_transition_eqns <- function(gmod_obj, model_obj, events_df, simplify 
 
 # gmod 
 
-tunnel_states <- function(gmod_obj){
-  #gmod_obj$layers
-  events_df <- get_event_df(gmod_obj)
-  payoffs_layer <- retrieve_layer_by_type(gmod_obj, type = "payoffs")
-  payoffs_str <- sapply(payoffs_layer$payoffs, my_deparse)
-  # capture all tunnel states in probabilities
-  tunnel_states <- character(0)
-  probs <- events_df$probs
-  # probs
-  for (prob in probs){
-    matches_transitions <- extract_tunnel_states(prob) #, 'cycle_in_state\\("(.*?)"\\)')
-    tunnel_states <- c(tunnel_states, matches_transitions) #[[1]][,2])
-  }
-  # probs
-  for (payoff_str in payoffs_str){
-    matches_payoffs <- extract_tunnel_states(payoff_str) #, 'cycle_in_state\\("(.*?)"\\)')
-    tunnel_states <- c(tunnel_states, matches_payoffs) #[[1]][,2])
-  }
-  tunnel_states <- unique(tunnel_states)
-  
-  return(tunnel_states)
+add_tunnels <- function(gmod_obj, model_obj){
+  tunnel_layer <- retrieve_layer_by_type(gmod_obj, type = "tunnels")
+  states <- tunnel_layer$states
+  lengths <- tunnel_layer$lengths
+  if (is.null(lengths)){
+    lengths <- rep(gmod_obj$n_cycles, length(states))
+  } else if(any(is.na(lengths))){
+    na_id <- is.na(lengths)
+    lengths[na_id] <- gmod_obj$n_cycles
+  } 
+  model_obj$tunnel_states <- tunnel_layer$states
+  model_obj$tunnel_lengths <- tunnel_layer$lengths
+  names(model_obj$tunnel_lengths) <- tunnel_layer$states
+  return(model_obj)
 }
 
-extract_tunnel_states <- function(input_string){
-  # Extract endings of words starting with 'cycle_in_'
-  outcome <- stringr::str_extract_all(input_string, "\\bcycle_in_(\\w+)\\b")[[1]]
-  # Remove the 'cycle_in_' prefix
-  sub("^cycle_in_", "", outcome)
-}
+
 
 is_cycle_dep <- function(gmod_obj){
   #gmod_obj$layers

@@ -6,7 +6,7 @@
 \usage{
 \method{gmod_gen_model_function}{gmod_decision}(
   model_struc,
-  model_function_name = "my_dec_model",
+  model_function_name = "my_decision_model",
   print_model_function = FALSE
 )
 }

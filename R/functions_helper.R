@@ -104,13 +104,21 @@ payoff2liststring <- function(input_string){
 }
 
 # gets the state and tunnel out of a tunnel state
+#' Title
+#'
+#' @param tunnel_state 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 tunnel2state <- function(tunnel_state){
   state_comp <- strsplit(tunnel_state, "_tnl")[[1]]
   if (length(state_comp) == 1){
     state_comp[2] <- 0
   }
   #names(state_comp) <- c("state", "tunnel")
-  return(state_comp)
+  return(list(state = state_comp[1], cycle_in_state = as.numeric(state_comp[2])))
 }
 
 

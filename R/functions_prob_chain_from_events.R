@@ -177,13 +177,13 @@ get_events <- function(events_df){
   unique(events_df$event)
 }
 
-get_events_with_payoffs_df <- function(df){
-  # Columns to check for NAs
-  col_names <- colnames(df)
-  keep_cols <- c("type", "event", "values", "outcomes", "probs","id")
-  columns_to_check <- col_names[!(col_names %in% keep_cols)]  # Specify columns here
-  
-  # Exclude rows with NA values in all specified columns
-  df[!apply(df[columns_to_check], 1, function(row) all(is.na(row)|row=="NA"|row==0)), ]
-}
+# get_events_with_payoffs_df <- function(df){
+#   # Columns to check for NAs
+#   col_names <- colnames(df)
+#   keep_cols <- c("type", "event", "values", "outcomes", "probs","id")
+#   columns_to_check <- col_names[!(col_names %in% keep_cols)]  # Specify columns here
+#   
+#   # Exclude rows with NA values in all specified columns
+#   df[!apply(df[columns_to_check], 1, function(row) all(is.na(row)|row=="NA"|row==0)), ]
+# }
 

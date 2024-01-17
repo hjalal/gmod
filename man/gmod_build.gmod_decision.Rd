@@ -4,7 +4,7 @@
 \alias{gmod_build.gmod_decision}
 \title{Build a decision tree structure}
 \usage{
-\method{gmod_build}{gmod_decision}(gmod_obj)
+\method{gmod_build}{gmod_decision}(gmod_obj, params = NULL, simplify = FALSE)
 }
 \arguments{
 \item{gmod_obj}{}

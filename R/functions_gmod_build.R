@@ -108,6 +108,20 @@ discounts <- function(payoffs, discounts){
   list(type = "discounts", payoffs = payoffs, discounts = discounts)
 }
 
+#' Title
+#'
+#' @param states 
+#' @param lengths 
+#'
+#' @return a gmod layer with tunnels
+#' @export
+#'
+#' @examples
+tunnels <- function(states, lengths = NULL){
+  list(type = "tunnels", states = states, lengths = lengths)
+}
+
+
 #' Add decisions to a gmod
 #'
 #' @param ... decision names

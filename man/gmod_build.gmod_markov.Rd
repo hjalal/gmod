@@ -4,7 +4,7 @@
 \alias{gmod_build.gmod_markov}
 \title{Build a Markov model structure}
 \usage{
-\method{gmod_build}{gmod_markov}(gmod_obj)
+\method{gmod_build}{gmod_markov}(gmod_obj, params = NULL, simplify = FALSE)
 }
 \arguments{
 \item{gmod_obj}{}
