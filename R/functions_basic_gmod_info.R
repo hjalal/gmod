@@ -17,8 +17,14 @@ event_mapping_info <- function(gmod_obj, model_obj){
 
 add_discounts_info <- function(gmod_obj, model_obj){
   discounts_info <- retrieve_layer_by_type(gmod_obj, type = "discounts")
-  model_obj$discounts <- discounts_info$discounts
-  names(model_obj$discounts) <- discounts_info$payoffs
+  if (is.null(discounts_info$discounts)){
+    model_obj$discounts <- rep(0, model_obj$n_payoffs)
+    names(model_obj$discounts) <- model_obj$payoff_names
+    
+  } else {
+    model_obj$discounts <- discounts_info$discounts
+    names(model_obj$discounts) <- discounts_info$payoffs
+  }
   return(model_obj)
 }
 

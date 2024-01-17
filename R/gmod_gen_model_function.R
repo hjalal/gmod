@@ -102,7 +102,9 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       model_lines <- c(model_lines, "state_comp <- tunnel2state(state_expanded)")
       model_lines <- c(model_lines, "state <- state_comp$state")
       model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
-    } 
+    } else {
+      model_lines <- c(model_lines, "state <- state_expanded")
+    }
     if(dest=="'curr_state'"){ # if dest == current state, then add prob to existing prob
       if(is_tunnel){ # if there are no tunnels in the model, no need to check
         model_lines <- c(model_lines, "if (state %in% tunnel_states){")
@@ -145,6 +147,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
     }
     if(is_state){
       model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
+      model_lines <- c(model_lines, "state <- state_expanded")
       state_str <- "state_expanded"
     } else state_str <- ""
     if(is_tunnel){

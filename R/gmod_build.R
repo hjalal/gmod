@@ -37,7 +37,6 @@ gmod_build.gmod_markov <- function(gmod_obj, params = NULL, simplify = FALSE){
   model_obj <- add_markov_info(gmod_obj, model_obj)
   model_obj <- event_mapping_info(gmod_obj, model_obj)
   model_obj <- add_markov_initial_probs(gmod_obj, model_obj)
-  model_obj <- add_discounts_info(gmod_obj, model_obj)
   events_df <- get_event_df(gmod_obj)
   model_obj$events <- unique(events_df$event)
   model_obj$n_events <- length(model_obj$events)
@@ -45,6 +44,7 @@ gmod_build.gmod_markov <- function(gmod_obj, params = NULL, simplify = FALSE){
   model_obj$events_df <- events_df
   #model_obj$events_with_payoffs_df <- events_with_payoffs_df
   model_obj <- add_payoffs(gmod_obj, model_obj)
+  model_obj <- add_discounts_info(gmod_obj, model_obj)
   model_obj <- add_markov_eqns(gmod_obj, model_obj, events_df, simplify = simplify)
   #model_obj <- add_markov_payoff_eqns(gmod_obj, model_obj, events_df)
   #model_obj <- add_event_prop_eqns(gmod_obj, model_obj, events_df, events_with_payoffs_df)
