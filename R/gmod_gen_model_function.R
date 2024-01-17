@@ -59,7 +59,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   # follow the same order of dimensions: payoffs -> decisions -> cycles -> state1 -> state2
   if (is_cycle_dep){
     model_lines <- c(model_lines, "P <- array(0, dim = c(n_states_expanded, n_states_expanded, n_cycles, n_decisions), dimnames = list(states_expanded,states_expanded, cycles, decisions ))")
-    model_lines <- c(model_lines, "Payoff <- array(0, dim = c(n_states_expanded, n_cycles, n_decisions,n_payoffs), dimnames = list(states_expanded, cycles, decisions, payoff_names))")
+    model_lines <- c(model_lines, "Payoff <- array(0, dim = c(n_cycles, n_states_expanded, n_decisions,n_payoffs), dimnames = list(cycles, states_expanded, decisions, payoff_names))")
   } else {
     model_lines <- c(model_lines, "P <- array(0, dim = c(n_states_expanded, n_states_expanded, n_decisions), dimnames = list(states_expanded,states_expanded, decisions))")
     model_lines <- c(model_lines, "Payoff <- array(0, dim = c(n_states_expanded, n_decisions,n_payoffs), dimnames = list(states_expanded, decisions, payoff_names))")
@@ -164,19 +164,15 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       # if dest is the same as state, then add payoff to the same state 
       #if(dest=="curr_state"){
       if (i == 1){
-        model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
+        model_lines <- c(model_lines, paste0("Payoff[", cycle_str, ",", state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
       } else if (i == nrow(model_equations)){
         model_lines <- c(model_lines, new_payoff)
       } else {
         model_lines <- c(model_lines, paste0(new_payoff, "+"))
       }
-      #} else {
-      #  model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff))
-      #}
     } # end model equations loop
     
-    #model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] + ", new_payoff))
-    
+
     if(is_state) model_lines <- c(model_lines, "} # end state")
     if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
     if(is_decision) model_lines <- c(model_lines, "} # end decisions")
@@ -186,52 +182,12 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   
   
   # add calculation code ======
-  model_lines <- c(model_lines, paste0("\n # Model runs", payoff_name))
-  
-  
-  model_lines <- c(model_lines, "} # end function")
-  model_string <- paste(model_lines, collapse = "\n")
-  
-  if (print_model_function){
-    cat(model_string)
-  }
-  
-  
-  
-  
-  
-  
-  
-  
-  new_func <- eval(parse(text = model_string)) # generates the function
-  
-  # Assign the new function to the global environment
-  assign(model_function_name, new_func, envir = .GlobalEnv)
-  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
-             " is generated. It can be run by calling it directly:\n", model_function_name, 
-             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
-  return(TRUE)
-  
-  
-  # iterate through the equations and populate P
-  state <- markov_eqns$state_expanded[i]
-  dest <- markov_eqns$dest_expanded[i]
-  decision <- markov_eqns$decision[i]
-  prob <- markov_eqns$probs[i]
-  if (is_cycle_dep){
-    cycle <- markov_eqns$cycle[i]
-    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"','", cycle,"'] <- ", prob))
-  } else {
-    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"'] <- ", prob))
-  }
-  #}
-  return(model_lines)
-  
+  model_lines <- c(model_lines, paste0("\n # Run Markov Model", payoff_name))
   model_lines <- c(model_lines, paste0("model_results <- list()"))
+  
+  model_lines <- c(model_lines, "Trace <- array(NA, dim = c(n_cycles, n_states_expanded, n_decisions), dimnames = list(cycles, states_expanded, decisions))")
   # construct P 
-  model_lines <- construct_P_str(model_struc, is_cycle_dep, model_lines = model_lines)
-  
-  
+
   for (decision in decisions){
     model_lines <- c(model_lines, paste0("Trace <- matrix(NA, nrow = ", 
                                          n_cycles,",ncol = ",n_states_expanded,
@@ -291,7 +247,50 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
              " is generated. It can be run by calling it directly:\n", model_function_name, 
              "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
+
+  
+  
+  
+  
+  model_lines <- c(model_lines, "} # end function")
+  model_string <- paste(model_lines, collapse = "\n")
+  
+  if (print_model_function){
+    cat(model_string)
+  }
+  
+  
+  
+  
+  
+  
+  
+  
+  new_func <- eval(parse(text = model_string)) # generates the function
+  
+  # Assign the new function to the global environment
+  assign(model_function_name, new_func, envir = .GlobalEnv)
+  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
+             " is generated. It can be run by calling it directly:\n", model_function_name, 
+             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
   return(TRUE)
+  
+  
+  # iterate through the equations and populate P
+  state <- markov_eqns$state_expanded[i]
+  dest <- markov_eqns$dest_expanded[i]
+  decision <- markov_eqns$decision[i]
+  prob <- markov_eqns$probs[i]
+  if (is_cycle_dep){
+    cycle <- markov_eqns$cycle[i]
+    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"','", cycle,"'] <- ", prob))
+  } else {
+    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"'] <- ", prob))
+  }
+  #}
+  return(model_lines)
+  
+
 }
 
 
