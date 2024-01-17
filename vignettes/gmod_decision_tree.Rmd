@@ -72,7 +72,7 @@ gmod_gen_model_function(model_struc)
 ```
 
 ```{r}
-my_decision_model()
+my_decision_model(model_struc)
 ```
 
 

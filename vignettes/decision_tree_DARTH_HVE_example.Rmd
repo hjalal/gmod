@@ -58,9 +58,9 @@ mygmod <- gmod(model_type = "Decision") +
 Define the model parameters. 
 
 ```{r}
-# v_names_str    <- c("No Tx", "Tx All", "Biopsy")  # names of strategies
-# n_str          <- length(v_names_str)             # number of strategies
-# wtp            <- 100000                          # willingness to pay threshold
+v_names_str    <- c("No Tx", "Tx All", "Biopsy")  # names of strategies
+n_str          <- length(v_names_str)             # number of strategies
+wtp            <- 100000                          # willingness to pay threshold
 # 
 # # Probabilities
 # p_HVE          <- 0.52   # prevalence of HVE

@@ -182,7 +182,7 @@ model_res <- gmod_gen_model_function(model_struc)
 ```
 
 ```{r}
-my_markov_model(params)
+my_markov_model(model_struc, params)
 ```
 
 ## Simplified example with less equations
@@ -200,7 +200,7 @@ model_res2 <- gmod_gen_model_function(model_struc2,  model_function_name = "my_m
 ```
 
 ```{r}
-my_markov_model2(params)
+mode_res2 <- my_markov_model2(model_struc2, params, return_trace = TRUE)
 ```
 
 
@@ -208,7 +208,7 @@ The warning just indicates that no parameters were passed, so gmod uses the valu
 
 We can load individual outcomes here that we are interested in. For example, if we are interested in the Markov Trace of the Standard of Care treatment, we can type: 
 ```{r}
-model_res$Trace$StandardOfCare
+model_res2$Trace
 ```
 
 Similarly, we can load the summary outcomes of the costs and utility of the strategies, such that:

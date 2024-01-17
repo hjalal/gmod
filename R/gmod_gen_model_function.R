@@ -17,7 +17,7 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE){
-
+  
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
@@ -48,7 +48,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   payoff_names <- model_struc$payoff_names
   model_lines <- c(model_lines, paste0("payoff_names <- model_struc$payoff_names"))
   
-  n_payoffs <- model_struc$n_payoffs
+  model_lines <- c(model_lines,"n_payoffs <- model_struc$n_payoffs")
   model_lines <- c(model_lines,"discounts <- model_struc$discounts") # a named vector with discount rates
   
   
@@ -83,10 +83,14 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       model_lines <- c(model_lines, "for (decision in decisions){")
       decision_str <- "decision"
     } else decision_str <- ""
-    if(is_cycle){
+    if (!is_cycle_dep){
+      cycle_str <- ""
+    } else if(is_cycle){
       model_lines <- c(model_lines, "for (cycle in cycles){")
-      cycle_str <- "cycle"
-    } else cycle_str <- ""
+      cycle_str <- "cycle,"
+    } else {
+      cycle_str <- ","
+    }
     if(is_state){
       model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
       state_str <- "state_expanded"
@@ -100,13 +104,17 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
     } 
     if(dest=="'curr_state'"){ # if dest == current state, then add prob to existing prob
-      dest <- "state_expanded"
-      model_lines <- c(model_lines, "if (state %in% tunnel_states & cycle_in_state < tunnel_lengths[state]){")
-      model_lines <- c(model_lines, "dest <- paste0(state,'_tnl', cycle_in_state+1)")
-      model_lines <- c(model_lines, "} else dest <- state_expanded")
-      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- P[", state_str, ", dest,", cycle_str, ",", decision_str, "] + ", prob))
+      if(is_tunnel){ # if there are no tunnels in the model, no need to check
+        model_lines <- c(model_lines, "if (state %in% tunnel_states){")
+        model_lines <- c(model_lines, "if (cycle_in_state < tunnel_lengths[state]){")
+        model_lines <- c(model_lines, "dest <- paste0(state,'_tnl', cycle_in_state+1)")
+        model_lines <- c(model_lines, "}} else dest <- state_expanded")
+      } else {
+        model_lines <- c(model_lines, "dest <- state_expanded")
+      }
+      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, decision_str, "] <- P[", state_str, ", dest,", cycle_str, decision_str, "] + ", prob))
     } else { # if dest != current state, then just use the prob since dest are unique
-      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- ", prob))
+      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, decision_str, "] <- ", prob))
     }
     
     
@@ -127,10 +135,14 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       model_lines <- c(model_lines, "for (decision in decisions){")
       decision_str <- "decision"
     } else decision_str <- ""
-    if(is_cycle){
+    if (!is_cycle_dep){
+      cycle_str <- ""
+    } else if(is_cycle){
       model_lines <- c(model_lines, "for (cycle in cycles){")
-      cycle_str <- "cycle"
-    } else cycle_str <- ""
+      cycle_str <- "cycle,"
+    } else {
+      cycle_str <- ","
+    }
     if(is_state){
       model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
       state_str <- "state_expanded"
@@ -161,7 +173,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       # if dest is the same as state, then add state_payoffs to the same state 
       #if(dest=="curr_state"){
       if (i == 1){
-        model_lines <- c(model_lines, paste0("state_payoffs[", cycle_str, ",", state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
+        model_lines <- c(model_lines, paste0("state_payoffs[", cycle_str, state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
       } else if (i == nrow(model_equations)){
         model_lines <- c(model_lines, new_payoff)
       } else {
@@ -169,7 +181,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       }
     } # end model equations loop
     
-
+    
     if(is_state) model_lines <- c(model_lines, "} # end state")
     if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
     if(is_decision) model_lines <- c(model_lines, "} # end decisions")
@@ -184,40 +196,41 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   model_lines <- c(model_lines, "Trace <- array(NA, dim = c(n_cycles, n_states_expanded, n_decisions), dimnames = list(cycles, states_expanded, decisions))")
   model_lines <- c(model_lines, "cycle_payoffs <- array(0, dim = c(n_cycles, n_states_expanded, n_decisions, n_payoffs), dimnames = list(cycles, states_expanded, decisions, payoff_names))")
   # construct P 
-
-  model_lines <- c(model_lines, "for (decision in decisions){")
-    model_lines <- c(model_lines, paste0("Trace[1, ,decision] <- model_struc$p0[[decision]]"))
-    model_lines <- c(model_lines, paste0("for (i in 2:n_cycles){"))
-    if (is_cycle_dep){ # use array syntax
-      model_lines <- c(model_lines, paste0("P_temp <- P[,,i,decision]"))
-    } else { #use matrix syntax
-      model_lines <- c(model_lines, paste0("P_temp <- P[,,decision]]"))
-    }
-    if (sparse){
-      model_lines <- c(model_lines, "Trace[i,,decision] <- as.vector(Matrix::Matrix(Trace[i-1,,decision], nrow = 1, sparse=T) %*% Matrix::Matrix(P_temp, sparse=T))")
-    } else {
-      model_lines <- c(model_lines, "Trace[i,,decision] <- Trace[i-1,,decision] %*% P_temp")
-    }
-    model_lines <- c(model_lines, "}")
-    model_lines <- c(model_lines, "} # end decision")
   
-    
+  model_lines <- c(model_lines, "for (decision in decisions){")
+  model_lines <- c(model_lines, paste0("Trace[1, ,decision] <- model_struc$p0[[decision]]"))
+  model_lines <- c(model_lines, paste0("for (i in 2:n_cycles){"))
+  if (is_cycle_dep){ # use array syntax
+    model_lines <- c(model_lines, paste0("P_temp <- P[,,i,decision]"))
+  } else { #use matrix syntax
+    model_lines <- c(model_lines, paste0("P_temp <- P[,,decision]"))
+  }
+  if (sparse){
+    model_lines <- c(model_lines, "Trace[i,,decision] <- as.vector(Matrix::Matrix(Trace[i-1,,decision], nrow = 1, sparse=T) %*% Matrix::Matrix(P_temp, sparse=T))")
+  } else {
+    model_lines <- c(model_lines, "Trace[i,,decision] <- Trace[i-1,,decision] %*% P_temp")
+  }
+  model_lines <- c(model_lines, "}")
+  model_lines <- c(model_lines, "} # end decision")
+  
+  
   # Add payoffs multiplied by traces 
   model_lines <- c(model_lines, paste0("\n #Multiply Trace by state payoffs"))
   model_lines <- c(model_lines, paste0("cycle_ones <- matrix(1,nrow=n_cycles,ncol=1)"))
   model_lines <- c(model_lines, paste0("state_ones <- matrix(1,nrow=1, ncol=n_states_expanded)"))
   model_lines <- c(model_lines, paste0("summary_payoffs <- matrix(0, nrow=n_decisions, ncol=n_payoffs, dimnames=list(decisions,payoff_names))"))
   model_lines <- c(model_lines, paste0("for (decision in decisions){"))
-    model_lines <- c(model_lines, paste0("for (payoff_name in payoff_names){"))
-      model_lines <- c(model_lines, paste0("mat_discounts <- matrix(1/(1+discounts[payoff_name])^(cycles-1),ncol=1)%*%state_ones"))
-      model_lines <- c(model_lines, paste0("Payoff_temp <- state_payoffs[,,decision, payoff_name]"))
-      if (!is_cycle_dep){ # if model is not cycle dependent, we will get a single vector of values
-        model_lines <- c(model_lines, "Payoff_temp <- cycle_ones %*% Payoff_temp")
-      } 
-      model_lines <- c(model_lines, paste0("cycle_payoffs[,,decision,payoff_name] <- Trace[,,decision] * Payoff_temp * mat_discounts"))
-      model_lines <- c(model_lines, paste0("summary_payoffs[decision, payoff_name] <- sum(cycle_payoffs[,,decision,payoff_name])"))
+  model_lines <- c(model_lines, paste0("for (payoff_name in payoff_names){"))
+  model_lines <- c(model_lines, paste0("mat_discounts <- matrix(1/(1+discounts[payoff_name])^(cycles-1),ncol=1)%*%state_ones"))
+  if (is_cycle_dep){ # if model is not cycle dependent, we will get a single vector of values
+    model_lines <- c(model_lines, paste0("Payoff_temp <- state_payoffs[,,decision, payoff_name]"))
+  } else {
+    model_lines <- c(model_lines, "Payoff_temp <- cycle_ones %*% state_payoffs[,decision, payoff_name]")
+  }
+  model_lines <- c(model_lines, paste0("cycle_payoffs[,,decision,payoff_name] <- Trace[,,decision] * Payoff_temp * mat_discounts"))
+  model_lines <- c(model_lines, paste0("summary_payoffs[decision, payoff_name] <- sum(cycle_payoffs[,,decision,payoff_name])"))
   model_lines <- c(model_lines, paste0("} # end state_payoffs"))
-
+  
   model_lines <- c(model_lines, paste0("} # end decision"))
   
   #model_lines <- c(model_lines, "detach(params)")
@@ -247,7 +260,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
              " is generated. It can be run by calling it directly, for example this function returns the summary results:\n", model_function_name, 
              "(model_struc,params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
-
+  
   return(TRUE)
 }
 
