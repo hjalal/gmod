@@ -17,11 +17,8 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
-  
-  model_function_name = "my_markov_model"
-  print_model_function = T
-  
-  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE, return_detailed_outcomes=FALSE){")
+
+  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
   #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
@@ -55,14 +52,14 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   model_lines <- c(model_lines,"discounts <- model_struc$discounts") # a named vector with discount rates
   
   
-  # initialize the transition array and payoff arrays 
+  # initialize the transition array and state_payoffs arrays 
   # follow the same order of dimensions: payoffs -> decisions -> cycles -> state1 -> state2
   if (is_cycle_dep){
     model_lines <- c(model_lines, "P <- array(0, dim = c(n_states_expanded, n_states_expanded, n_cycles, n_decisions), dimnames = list(states_expanded,states_expanded, cycles, decisions ))")
-    model_lines <- c(model_lines, "Payoff <- array(0, dim = c(n_cycles, n_states_expanded, n_decisions,n_payoffs), dimnames = list(cycles, states_expanded, decisions, payoff_names))")
+    model_lines <- c(model_lines, "state_payoffs <- array(0, dim = c(n_cycles, n_states_expanded, n_decisions,n_payoffs), dimnames = list(cycles, states_expanded, decisions, payoff_names))")
   } else {
     model_lines <- c(model_lines, "P <- array(0, dim = c(n_states_expanded, n_states_expanded, n_decisions), dimnames = list(states_expanded,states_expanded, decisions))")
-    model_lines <- c(model_lines, "Payoff <- array(0, dim = c(n_states_expanded, n_decisions,n_payoffs), dimnames = list(states_expanded, decisions, payoff_names))")
+    model_lines <- c(model_lines, "state_payoffs <- array(0, dim = c(n_states_expanded, n_decisions,n_payoffs), dimnames = list(states_expanded, decisions, payoff_names))")
   }
   
   # iterate throught the equation lines and send them to the model text builder 
@@ -119,7 +116,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
     
   }
   
-  # Add payoff code ===== 
+  # Add state_payoffs code ===== 
   
   # iterate throught the equation lines and send them to the model code builder
   for (payoff_name in payoff_names){
@@ -161,10 +158,10 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       #model_lines <- c(model_lines, paste0("dest<-", dest))
       
       # cumulate payoffs across all destinations
-      # if dest is the same as state, then add payoff to the same state 
+      # if dest is the same as state, then add state_payoffs to the same state 
       #if(dest=="curr_state"){
       if (i == 1){
-        model_lines <- c(model_lines, paste0("Payoff[", cycle_str, ",", state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
+        model_lines <- c(model_lines, paste0("state_payoffs[", cycle_str, ",", state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
       } else if (i == nrow(model_equations)){
         model_lines <- c(model_lines, new_payoff)
       } else {
@@ -183,190 +180,73 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   
   # add calculation code ======
   model_lines <- c(model_lines, paste0("\n # Run Markov Model", payoff_name))
-  model_lines <- c(model_lines, paste0("model_results <- list()"))
   
   model_lines <- c(model_lines, "Trace <- array(NA, dim = c(n_cycles, n_states_expanded, n_decisions), dimnames = list(cycles, states_expanded, decisions))")
+  model_lines <- c(model_lines, "cycle_payoffs <- array(0, dim = c(n_cycles, n_states_expanded, n_decisions, n_payoffs), dimnames = list(cycles, states_expanded, decisions, payoff_names))")
   # construct P 
 
-  for (decision in decisions){
-    model_lines <- c(model_lines, paste0("Trace <- matrix(NA, nrow = ", 
-                                         n_cycles,",ncol = ",n_states_expanded,
-                                         ", dimnames=list(cycles,states_expanded))"))
-    model_lines <- c(model_lines, paste0("Trace[1, ] <- model_struc$p0[['",decision,"']]"))
-    model_lines <- c(model_lines, paste0("for (i in 2:",n_cycles,"){"))
+  model_lines <- c(model_lines, "for (decision in decisions){")
+    model_lines <- c(model_lines, paste0("Trace[1, ,decision] <- model_struc$p0[[decision]]"))
+    model_lines <- c(model_lines, paste0("for (i in 2:n_cycles){"))
     if (is_cycle_dep){ # use array syntax
-      model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']][,,i]"))
+      model_lines <- c(model_lines, paste0("P_temp <- P[,,i,decision]"))
     } else { #use matrix syntax
-      model_lines <- c(model_lines, paste0("P_temp <- P[['",decision,"']]"))
+      model_lines <- c(model_lines, paste0("P_temp <- P[,,decision]]"))
     }
-    model_lines <- c(model_lines, "Trace[i,] <- Trace[i-1,] %*% P_temp")
+    model_lines <- c(model_lines, "Trace[i,,decision] <- Trace[i-1,,decision] %*% P_temp")
     model_lines <- c(model_lines, "}")
-    model_lines <- c(model_lines, paste0("model_results$Trace[['",decision,"']] <- Trace"))
-  } # end decision
+    model_lines <- c(model_lines, "} # end decision")
   
-  # Add payoffs multiplied by traces '
-  model_lines <- construct_Payoff_str(model_struc, model_lines = model_lines)  
-  model_lines <- c(model_lines, paste0("cycle_ones <- matrix(1,nrow=", n_cycles,", ncol=1)"))
-  model_lines <- c(model_lines, paste0("state_ones <- matrix(1,nrow=1, ncol=", n_states_expanded, ")"))
-  model_lines <- c(model_lines, paste0("mat_summary <- matrix(0, nrow=", n_decisions,",ncol=", n_payoffs,",dimnames=list(decisions,payoff_names))"))
-  for (decision in decisions){
-    for (payoff_name in payoff_names){
-      model_lines <- c(model_lines, paste0("mat_discounts <- matrix(1/(1+discounts['",payoff_name,"'])^(cycles-1),ncol=1)%*%state_ones"))
-      model_lines <- c(model_lines, paste0("Payoff_temp <- Payoff[['",payoff_name,"']][['",decision,"']]"))
+    
+  # Add payoffs multiplied by traces 
+  model_lines <- c(model_lines, paste0("\n #Multiply Trace by state payoffs"))
+  model_lines <- c(model_lines, paste0("cycle_ones <- matrix(1,nrow=n_cycles,ncol=1)"))
+  model_lines <- c(model_lines, paste0("state_ones <- matrix(1,nrow=1, ncol=n_states_expanded)"))
+  model_lines <- c(model_lines, paste0("summary_payoffs <- matrix(0, nrow=n_decisions, ncol=n_payoffs, dimnames=list(decisions,payoff_names))"))
+  model_lines <- c(model_lines, paste0("for (decision in decisions){"))
+    model_lines <- c(model_lines, paste0("for (payoff_name in payoff_names){"))
+      model_lines <- c(model_lines, paste0("mat_discounts <- matrix(1/(1+discounts[payoff_name])^(cycles-1),ncol=1)%*%state_ones"))
+      model_lines <- c(model_lines, paste0("Payoff_temp <- state_payoffs[,,decision, payoff_name]"))
       if (!is_cycle_dep){ # if model is not cycle dependent, we will get a single vector of values
         model_lines <- c(model_lines, "Payoff_temp <- cycle_ones %*% Payoff_temp")
       } 
-      model_lines <- c(model_lines, paste0("R <- model_results$Trace[['",decision,"']] * Payoff_temp * mat_discounts"))
-      model_lines <- c(model_lines, paste0("model_results$Results_detailed[['",payoff_name,"']][['",decision,"']] <- R"))
-      model_lines <- c(model_lines, paste0("mat_summary['",decision, "','", payoff_name,"'] <- sum(R)"))
-    } # end payoff
-    
-  } # end decision
+      model_lines <- c(model_lines, paste0("cycle_payoffs[,,decision,payoff_name] <- Trace[,,decision] * Payoff_temp * mat_discounts"))
+      model_lines <- c(model_lines, paste0("summary_payoffs[decision, payoff_name] <- sum(cycle_payoffs[,,decision,payoff_name])"))
+  model_lines <- c(model_lines, paste0("} # end state_payoffs"))
+
+  model_lines <- c(model_lines, paste0("} # end decision"))
   
   #model_lines <- c(model_lines, "detach(params)")
   
   # suppress final_outcomes, if only the summary outcomes is needed
-  model_lines <- c(model_lines, "if(return_payoffs) model_results$Payoff <- Payoff")
-  model_lines <- c(model_lines, "if(!return_trace) model_results$Trace <- NULL")
-  model_lines <- c(model_lines, "if(!return_detailed_outcomes) model_results$Results_detailed <- NULL")
+  model_lines <- c(model_lines, paste0("\n #Compile model results"))
+  model_lines <- c(model_lines, paste0("\nmodel_results <- list()"))
   model_lines <- c(model_lines, "if(return_transition_prob) model_results$P <- P")
+  model_lines <- c(model_lines, "if(return_state_payoffs) model_results$state_payoffs <- state_payoffs")
+  model_lines <- c(model_lines, "if(return_trace) model_results$Trace <- Trace")
+  model_lines <- c(model_lines, "if(return_cycle_payoffs) model_results$cycle_payoffs <- cycle_payoffs")
+  model_lines <- c(model_lines, "if(return_payoff_summary) model_results$summary_payoffs <- summary_payoffs")
   
-  model_lines <- c(model_lines, "model_results$Summary <- mat_summary")
   model_lines <- c(model_lines, "return(model_results)")
-  model_lines <- c(model_lines, "}")
-  
-  model_string <- paste(model_lines, collapse = "\n")
-  
-  if (print_model_function){
-    cat(model_string)
-  }
-  new_func <- eval(parse(text = model_string)) # generates the function
-  
-  # Assign the new function to the global environment
-  assign(model_function_name, new_func, envir = .GlobalEnv)
-  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
-             " is generated. It can be run by calling it directly:\n", model_function_name, 
-             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
-
-  
-  
-  
-  
   model_lines <- c(model_lines, "} # end function")
+  
   model_string <- paste(model_lines, collapse = "\n")
   
   if (print_model_function){
     cat(model_string)
   }
   
-  
-  
-  
-  
-  
-  
-  
   new_func <- eval(parse(text = model_string)) # generates the function
   
   # Assign the new function to the global environment
   assign(model_function_name, new_func, envir = .GlobalEnv)
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
-             " is generated. It can be run by calling it directly:\n", model_function_name, 
-             "(params,return_payoffs=FALSE,return_trace=FALSE,return_transition_prob=FALSE,return_detailed_outcomes=FALSE)\033[0m\n"))
+             " is generated. It can be run by calling it directly, for example this function returns the summary results:\n", model_function_name, 
+             "(params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
+
   return(TRUE)
-  
-  
-  # iterate through the equations and populate P
-  state <- markov_eqns$state_expanded[i]
-  dest <- markov_eqns$dest_expanded[i]
-  decision <- markov_eqns$decision[i]
-  prob <- markov_eqns$probs[i]
-  if (is_cycle_dep){
-    cycle <- markov_eqns$cycle[i]
-    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"','", cycle,"'] <- ", prob))
-  } else {
-    model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"'] <- ", prob))
-  }
-  #}
-  return(model_lines)
-  
-
 }
 
-
-construct_P_str <- function(model_struc, is_cycle_dep, model_lines = ""){
-  
-  
-  markov_eqns <- model_struc$markov_eqns
-  is_cycle_dep <- model_struc$is_cycle_dep
-  decisions <- model_struc$decisions
-  n_cycles <- model_struc$n_cycles
-  #cycles <- 1:n_cycles
-  #cycle_names <- paste0("cycle_", cycles)
-  # states <- model_num_struc$states
-  # n_states <- model_num_struc$n_states
-  #states_expanded <- model_struc$states_expanded
-  n_states_expanded <- model_struc$n_states_expanded
-  model_lines <- c(model_lines, "P <- list()")
-  for (decision in decisions){
-    if (is_cycle_dep){
-      model_lines <- c(model_lines, paste0("P[['", decision, "']] <- array(0, dim = c(", n_states_expanded, ",", n_states_expanded, ",", n_cycles, 
-                                           "), dimnames = list(states_expanded,states_expanded, cycles))"))
-    } else {
-      model_lines <- c(model_lines, paste0("P[['", decision, "']] <- matrix(0, nrow = ", n_states_expanded, ", ncol = ", n_states_expanded, 
-                                           ", dimnames = list(states_expanded, states_expanded))"))
-    }
-  }
-  # iterate through the equations and populate P
-  for (i in 1:nrow(markov_eqns)){
-    state <- markov_eqns$state_expanded[i]
-    dest <- markov_eqns$dest_expanded[i]
-    decision <- markov_eqns$decision[i]
-    prob <- markov_eqns$probs[i]
-    if (is_cycle_dep){
-      cycle <- markov_eqns$cycle[i]
-      model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"','", cycle,"'] <- ", prob))
-    } else {
-      model_lines <- c(model_lines, paste0("P[['", decision, "']]['",state, "','", dest,"'] <- ", prob))
-    }
-  }
-  return(model_lines)
-}
-
-
-construct_Payoff_str <- function(model_struc, model_lines = ""){
-  markov_eqns <- model_struc$markov_eqns
-  is_cycle_dep <- model_struc$is_cycle_dep
-  decisions <- model_struc$decisions
-  n_cycles <- model_struc$n_cycles
-  cycles <- 1:n_cycles
-  #cycle_names <- paste0("cycle_", cycles)
-  # states <- model_num_struc$states
-  # n_states <- model_num_struc$n_states
-  #states_expanded <- model_struc$states_expanded
-  n_states_expanded <- model_struc$n_states_expanded
-  payoff_names <- model_struc$payoff_names
-  model_lines <- c(model_lines, "Payoff <- list()")
-  for (payoff_name in payoff_names){
-    for (decision in decisions){
-      
-    }
-  }
-  payoff_eqns <- model_struc$payoff_eqns
-  for (i in 1:nrow(payoff_eqns)){
-    state <- payoff_eqns$state_expanded[i]
-    decision <- payoff_eqns$decision[i]
-    for (payoff_name in payoff_names){
-      if (is_cycle_dep){
-        cycle <- payoff_eqns$cycle[i]
-        model_lines <- c(model_lines, paste0("Payoff[['", payoff_name, "']][['", decision, "']][", cycle, ",'", state, "'] <- ", payoff_eqns[[payoff_name]][i]))
-      } else {
-        model_lines <- c(model_lines, paste0("Payoff[['", payoff_name, "']][['", decision, "']][1, '", state, "'] <- ", payoff_eqns[[payoff_name]][i]))
-      }
-    } # end payoff_name
-  }
-  return(model_lines)
-}
 
 
 

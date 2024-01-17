@@ -134,9 +134,9 @@ add_tunnels <- function(gmod_obj, model_obj){
     na_id <- is.na(lengths)
     lengths[na_id] <- gmod_obj$n_cycles
   } 
-  model_obj$tunnel_states <- tunnel_layer$states
-  model_obj$tunnel_lengths <- tunnel_layer$lengths
-  names(model_obj$tunnel_lengths) <- tunnel_layer$states
+  model_obj$tunnel_states <- states
+  model_obj$tunnel_lengths <- lengths
+  names(model_obj$tunnel_lengths) <- states
   return(model_obj)
 }
 
