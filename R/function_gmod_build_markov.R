@@ -109,14 +109,13 @@ add_markov_eqns <- function(gmod_obj, model_obj, events_df, simplify = FALSE){
   # aggregate over destination states 
   # try without aggregation - aggregate probs in the gmod_gen function
   # keeps curr_state 
-  path_df2 <- path_df1 #%>% 
-    # dplyr::rowwise() %>% 
-    # dplyr::mutate(dplyr::across(payoff_names, ~ paste0(probs, "*", .x))) %>% 
-    # dplyr::group_by(dest) %>% 
-    # dplyr::summarize(dplyr::across(c(probs, payoff_names), ~ paste0(.x, collapse="+")))
+  path_df2 <- path_df1 %>% 
+    dplyr::rowwise() %>% 
+    dplyr::mutate(dplyr::across(payoff_names, ~ paste0(probs, "*", .x))) %>% 
+    dplyr::group_by(dest) %>% 
+    dplyr::summarize(dplyr::across(c(probs, payoff_names), ~ paste0(.x, collapse="+")))
     # 
   model_obj$model_equations <- path_df2
-  
   return(model_obj)
 }
 

@@ -300,7 +300,7 @@ utility <- function(state, decision, get_event){
          "S1" = if (decision %in% c("StrategyA", "StrategyAB")) u_trtA else u_S1,
          "S2" = u_S2,
          "D" = u_D)
-  return(du_HS1 + u_state + trans_util_getting_sick)
+  return(u_state + trans_util_getting_sick)
 }
 ```
 

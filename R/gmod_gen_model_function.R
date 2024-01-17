@@ -102,14 +102,16 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       model_lines <- c(model_lines, "state <- state_comp$state")
       model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
     } 
-    if(dest=="'curr_state'"){
+    if(dest=="'curr_state'"){ # if dest == current state, then add prob to existing prob
       dest <- "state_expanded"
       model_lines <- c(model_lines, "if (state %in% tunnel_states & cycle_in_state < tunnel_lengths[state]){")
       model_lines <- c(model_lines, "dest <- paste0(state,'_tnl', cycle_in_state+1)")
       model_lines <- c(model_lines, "} else dest <- state_expanded")
-    } 
+      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- P[", state_str, ", dest,", cycle_str, ",", decision_str, "] + ", prob))
+    } else { # if dest != current state, then just use the prob since dest are unique
+      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- ", prob))
+    }
     
-    model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- P[", state_str, ", dest,", cycle_str, ",", decision_str, "] + ", prob))
     
     if(is_state) model_lines <- c(model_lines, "} # end state")
     if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
@@ -121,58 +123,70 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   
   # iterate throught the equation lines and send them to the model code builder
   for (payoff_name in payoff_names){
+    model_lines <- c(model_lines, paste0("\n #State Payoffs:", payoff_name))
+    
+    # if the destination is a tunnel state, then use it with state_tnl1
+    if(is_decision){
+      model_lines <- c(model_lines, "for (decision in decisions){")
+      decision_str <- "decision"
+    } else decision_str <- ""
+    if(is_cycle){
+      model_lines <- c(model_lines, "for (cycle in cycles){")
+      cycle_str <- "cycle"
+    } else cycle_str <- ""
+    if(is_state){
+      model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
+      state_str <- "state_expanded"
+    } else state_str <- ""
+    if(is_tunnel){
+      if (!is_state){
+        stop("cycle_in_state cannot be used without state.  If cycle_in_state is passed as an argumetn for a user-defined function, state must also be passed as an argument")
+      }
+      model_lines <- c(model_lines, "state_comp <- tunnel2state(state_expanded)")
+      model_lines <- c(model_lines, "state <- state_comp$state")
+      model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
+    } 
+    
     for (i in 1:nrow(model_equations)){
-      # get prob dependencies 
+      # get new_payoff dependencies 
       dest <- model_equations$dest[i]
       
-      if(dest %in% tunnel_states) dest <- paste0(dest, "_tnl1")
-      dest <- paste0("'",dest, "'")
-      prob <- model_equations$probs[i]
-      is_decision <- grepl("\\bdecision\\b", prob)
-      is_state <- grepl("\\bstate\\b", prob)
-      is_cycle <- grepl("\\bcycle\\b", prob)
-      is_tunnel <- grepl("\\bcycle_in_state\\b", prob)
+      new_payoff <- model_equations[[payoff_name]][i]
+      is_decision <- grepl("\\bdecision\\b", new_payoff)
+      is_state <- grepl("\\bstate\\b", new_payoff)
+      is_cycle <- grepl("\\bcycle\\b", new_payoff)
+      is_tunnel <- grepl("\\bcycle_in_state\\b", new_payoff)
       # is the line a function of state? 
-      model_lines <- c(model_lines, paste0("\n# destination:", dest, "; eqns: ", prob))
-      model_lines <- c(model_lines, paste0("dest<-", dest))
+      model_lines <- c(model_lines, paste0("# destination:", dest))
+      #model_lines <- c(model_lines, paste0("dest<-", dest))
       
-      # if the destination is a tunnel state, then use it with state_tnl1
-      if(is_decision){
-        model_lines <- c(model_lines, "for (decision in decisions){")
-        decision_str <- "decision"
-      } else decision_str <- ""
-      if(is_cycle){
-        model_lines <- c(model_lines, "for (cycle in cycles){")
-        cycle_str <- "cycle"
-      } else cycle_str <- ""
-      if(is_state){
-        model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
-        state_str <- "state_expanded"
-      } else state_str <- ""
-      if(is_tunnel){
-        if (!is_state){
-          stop("cycle_in_state cannot be used without state.  If cycle_in_state is passed as an argumetn for a user-defined function, state must also be passed as an argument")
-        }
-        model_lines <- c(model_lines, "state_comp <- tunnel2state(state_expanded)")
-        model_lines <- c(model_lines, "state <- state_comp$state")
-        model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
-      } 
-      if(dest=="'curr_state'"){
-        dest <- "state_expanded"
-        model_lines <- c(model_lines, "if (state %in% tunnel_states & cycle_in_state < tunnel_lengths[state]){")
-        model_lines <- c(model_lines, "dest <- paste0(state,'_tnl', cycle_in_state+1)")
-        model_lines <- c(model_lines, "} else dest <- state_expanded")
-      } 
-      
-      model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, ",", decision_str, "] <- P[", state_str, ", dest,", cycle_str, ",", decision_str, "] + ", prob))
-      
-      if(is_state) model_lines <- c(model_lines, "} # end state")
-      if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
-      if(is_decision) model_lines <- c(model_lines, "} # end decisions")
-      
+      # cumulate payoffs across all destinations
+      # if dest is the same as state, then add payoff to the same state 
+      #if(dest=="curr_state"){
+      if (i == 1){
+        model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
+      } else if (i == nrow(model_equations)){
+        model_lines <- c(model_lines, new_payoff)
+      } else {
+        model_lines <- c(model_lines, paste0(new_payoff, "+"))
+      }
+      #} else {
+      #  model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff))
+      #}
     } # end model equations loop
+    
+    #model_lines <- c(model_lines, paste0("Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] <- Payoff[", state_str, ",", cycle_str, ",", decision_str,",'", payoff_name,"'] + ", new_payoff))
+    
+    if(is_state) model_lines <- c(model_lines, "} # end state")
+    if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
+    if(is_decision) model_lines <- c(model_lines, "} # end decisions")
+    
   } # end payoff_names loop
   
+  
+  
+  # add calculation code ======
+  model_lines <- c(model_lines, paste0("\n # Model runs", payoff_name))
   
   
   model_lines <- c(model_lines, "} # end function")
