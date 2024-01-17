@@ -320,7 +320,8 @@ gmod_gen_model_function(model_struc)
 ```{r}
 #source("../R/myfun.R")
 
-my_markov_model(params = params)
+model_results <- my_markov_model(model_struc, params, return_trace = T)
+dim(model_results$Trace)
 ```
 
 ## simplified version 

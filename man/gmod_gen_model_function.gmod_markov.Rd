@@ -7,7 +7,8 @@
 \method{gmod_gen_model_function}{gmod_markov}(
   model_struc,
   model_function_name = "my_markov_model",
-  print_model_function = FALSE
+  print_model_function = FALSE,
+  sparse = FALSE
 )
 }
 \arguments{

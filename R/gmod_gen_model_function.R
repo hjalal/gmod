@@ -16,9 +16,9 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @return
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
-gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
+gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE){
 
-  model_lines <- paste0(model_function_name, "<- function(params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
+  model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   #model_lines <- c(model_lines, "attach(params)")
   #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
@@ -193,7 +193,11 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
     } else { #use matrix syntax
       model_lines <- c(model_lines, paste0("P_temp <- P[,,decision]]"))
     }
-    model_lines <- c(model_lines, "Trace[i,,decision] <- Trace[i-1,,decision] %*% P_temp")
+    if (sparse){
+      model_lines <- c(model_lines, "Trace[i,,decision] <- as.vector(Matrix::Matrix(Trace[i-1,,decision], nrow = 1, sparse=T) %*% Matrix::Matrix(P_temp, sparse=T))")
+    } else {
+      model_lines <- c(model_lines, "Trace[i,,decision] <- Trace[i-1,,decision] %*% P_temp")
+    }
     model_lines <- c(model_lines, "}")
     model_lines <- c(model_lines, "} # end decision")
   
@@ -242,7 +246,7 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   assign(model_function_name, new_func, envir = .GlobalEnv)
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
              " is generated. It can be run by calling it directly, for example this function returns the summary results:\n", model_function_name, 
-             "(params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
+             "(model_struc,params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
 
   return(TRUE)
 }
