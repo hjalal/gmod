@@ -5,7 +5,8 @@
 #' @return gmod object
 #' @export
 #'
-#' @examples gmod_evaluate(numerical_model_structure)
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
 gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
 
 
@@ -16,7 +17,9 @@ gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
 #' 
 #' @return gmod object
 #'
-#' @examples gmod_evaluate(numerical_model_structure)
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
+
 gmod_evaluate.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
   model_lines <- paste0(model_function_name, "<- function(params){")
   model_lines <- c(model_lines, "list2env(params)")
@@ -187,7 +190,8 @@ construct_Payoff <- function(model_num_struc){
 #' 
 #' @return gmod object
 #'
-#' @examples gmod_evaluate(numerical_model_structure)
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
 gmod_evaluate.gmod_decision <- function(model_struc, params = NULL){
     if(is.null(params)){
       warning("No parameters were provided. Will use the parameters from the global environment. 

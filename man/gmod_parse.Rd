@@ -18,5 +18,5 @@ a nuemerical gmod object structure
 parses the string formulae and computes the numerical outcomes
 }
 \examples{
-gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))
+print("See Vignettes")
 }

@@ -16,5 +16,5 @@ gmod object
 runs the decision model and returns the expected payoff values and summary outcomes
 }
 \examples{
-gmod_evaluate(numerical_model_structure)
+print("see vignettes: vignettes(package='gmod')")
 }

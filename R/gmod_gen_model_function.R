@@ -2,10 +2,12 @@
 #' @description runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #'
-#' @return model strucuture and generates the model function
+#' @return model_struc and generates model function code 
 #' @export
 #'
-#' @examples gmod_evaluate(numerical_model_structure)
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
+
 gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 
 #' Runs the markov model
@@ -13,9 +15,11 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @param model_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #' @export
 #' 
-#' @return model strucuture and generates the model function
+#' @return model_struc and generates model function code 
 #'
-#' @examples gmod_evaluate(numerical_model_structure)
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
+
 gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
   model_struc <- gmod_build(mygmod) 
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
@@ -254,9 +258,9 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "m
   
   # Assign the new function to the global environment
   assign(model_function_name, new_func, envir = .GlobalEnv)
-  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
+  warning(paste0("Model function ", model_function_name, 
              " is generated. It can be run by calling it directly, for example this function returns the summary results:\n", model_function_name, 
-             "(model_struc,params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
+             "(model_struc,params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\n"))
   if(return_model_structure){
     return(model_struc)
   } else {
@@ -274,11 +278,11 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "m
 #' @param model_function_name 
 #' @param print_model_function 
 #'
-#' @return model strucuture and generates the model function
+#' @return model_struc and generates model function code 
 #' @export
 #'
-#' @examples
-#' print("vignette(package = 'gmod')")
+#' @examples 
+#' print("see vignettes: vignettes(package='gmod')")
 gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE, return_model_structure = TRUE){
   model_struc <- gmod_build(mygmod)
   # build model as a vector of strings 
@@ -313,7 +317,7 @@ gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_na
   new_func <- eval(parse(text = model_string)) # generates the function
   # Assign the new function to the global environment
   assign(model_function_name, new_func, envir = .GlobalEnv)
-  cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, " is generated. It can be run by calling it directly:\n", model_function_name, "(params)\033[0m\n"))
+  warning(paste0("Model function ", model_function_name, " is generated. It can be run by calling it directly:\n", model_function_name, "(params)\n"))
   if(return_model_structure){
     return(model_struc)
   } else {

@@ -6,7 +6,7 @@
 #' @export
 #' 
 #' @examples 
-#' gmod_build(mygmod)
+#' print("see vignettes(package = 'gmod')") 
 gmod_build <- function(x, ...) UseMethod("gmod_build")
 
 #' Build a Markov model structure
@@ -16,7 +16,9 @@ gmod_build <- function(x, ...) UseMethod("gmod_build")
 #' @return gmod structure containing formulae strings
 #' @export
 #'
-#' @examples gmod_build(mygmod)
+#' @examples 
+#' print("see vignettes(package = 'gmod')") 
+
 gmod_build.gmod_markov <- function(gmod_obj, params = NULL, simplify = FALSE){
   if (simplify){
     if (is.null(params)){
@@ -64,7 +66,8 @@ gmod_build.gmod_markov <- function(gmod_obj, params = NULL, simplify = FALSE){
 #' @return gmod structure containing formulae strings
 #' @export
 #'
-#' @examples gmod_build(mygmod)
+#' @examples 
+#' print("see vignettes(package = 'gmod')") 
 gmod_build.gmod_decision <- function(gmod_obj, params = NULL, simplify = FALSE){
   if (simplify){
     if (is.null(params)){

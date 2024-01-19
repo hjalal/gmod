@@ -33,8 +33,8 @@ mygmod <- gmod(model_type = "Decision") +
   decisions("A", "B") + 
   event_mapping(event = "get_infection",  
                 values = c(T, F), 
-                outcomes = c("Sick", "Healthy"), 
-                probs = c(pSick(decision), Inf)) + 
+                probs = c(pSick(decision), Inf), 
+                outcomes = c("Sick", "Healthy")) + 
   payoffs(life_expectancy = compute_le(final_outcome))
 
 ```

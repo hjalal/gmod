@@ -6,7 +6,8 @@
 #' @return a nuemerical gmod object structure 
 #' @export
 #' 
-#' @examples gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))
+#' @examples 
+#' print("See Vignettes")
 gmod_parse <- function(x, ...) UseMethod("gmod_parse")
 
 
@@ -19,8 +20,9 @@ gmod_parse <- function(x, ...) UseMethod("gmod_parse")
 #' @return model_num_struc
 #' @export
 #'
-#' @examples gmod_parse(mygmod)
-#' @examples gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))
+#' @examples 
+#' print("See Vignettes")
+
 gmod_parse.gmod_markov <- function(model_struc, params = NULL){
   if(is.null(params)){
     warning("No parameters were provided. Will use the parameters from the global environment. 
@@ -53,8 +55,9 @@ gmod_parse.gmod_markov <- function(model_struc, params = NULL){
 #' @return model_num_struc
 #' @export
 #'
-#' @examples gmod_parse(mygmod)
-#' @examples gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))
+#' @examples 
+#' print("See Vignettes")
+
 gmod_parse.gmod_decision <- function(model_struc, params = NULL){
   # if(is.null(params)){
   #   warning("No parameters were provided. Will use the parameters from the global environment. 

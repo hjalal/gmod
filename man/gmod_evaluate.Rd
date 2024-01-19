@@ -16,5 +16,5 @@ gmod object
 runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 }
 \examples{
-gmod_evaluate(numerical_model_structure)
+print("see vignettes: vignettes(package='gmod')")
 }

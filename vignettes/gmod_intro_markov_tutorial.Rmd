@@ -38,8 +38,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 75) +
   initial_probs(states = "H", probs = 1) +  
   event_mapping(event = "get_event",  
                 values = c("recover", "getsick", "progress", "die", "stay"), 
-                outcomes = c("H", "S1", "S2", "D", curr_state()), 
-                probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf)) +  
+                probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf), 
+                outcomes = c("H", "S1", "S2", "D", curr_state())) +  
   payoffs(cost = cost(state, decision), 
           utility = utility(state, decision))
 ```

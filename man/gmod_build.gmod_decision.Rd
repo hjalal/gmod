@@ -16,5 +16,5 @@ gmod structure containing formulae strings
 takes in a gmod model syntax and returns a gmod formula structure
 }
 \examples{
-gmod_build(mygmod)
+print("see vignettes(package = 'gmod')") 
 }

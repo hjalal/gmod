@@ -18,6 +18,5 @@ model_num_struc
 given gmod equations and a list of parameters it evaluates the model equations and returns the numerical values
 }
 \examples{
-gmod_parse(mygmod)
-gmod_parse(mygmod, params = list(param1 = 0.5, param2 = 0.6))
+print("See Vignettes")
 }

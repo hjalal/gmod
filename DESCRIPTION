@@ -5,7 +5,8 @@ Authors@R:
     person("Hawre", "Jalal", , "hjalal@uottawa.ca", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-8224-6834"))
 Description: gmod creates and evaluates decision and health economic evaluation models using the Grammer of Modeling. 
-    Grammar of Modeling. Gmod uses a single description for each element of a decision or Markov model. 
+    Grammar of Modeling. Gmod uses a single description for each element of a decision or Markov model. GMOD comes 
+    with absolutely no worranty. So, please use it at your own discretion.
 License: `use_gpl3_license()` 
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
@@ -15,3 +16,5 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+inst/extdata:
+  LifeTable_USA_Mx_2015.csv

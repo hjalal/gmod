@@ -35,7 +35,7 @@ library(magrittr)
 ```
 
 ```{r}
-mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
+mygmod <- gmod(model_type = "Markov", n_cycles = 5) + # for illustration it is 75 in the tutorial 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states("H", "S1", "S2", "D") + 
   tunnels(states = c("S1", "S2"), lengths = c(NA, NA)) + 
@@ -43,15 +43,15 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 75) +
   initial_probs(states = "H", probs = 1) +
   event_mapping(event = "die",  
               values = c(T, F), 
-              outcomes = c("D", "get_event"), 
-              probs = c(pDie(state, cycle, cycle_in_state), Inf)) +  
+              probs = c(pDie(state, cycle, cycle_in_state), Inf), 
+              outcomes = c("D", "get_event")) +  
   event_mapping(event = "get_event",  
                 values = c("recover", "getsick", "progress", "stay"), 
-                outcomes = c("H", "S1", "S2", curr_state()), 
                 probs = c(pRecover(state), 
                           pGetSick(state), 
                           pProgress(state, decision, cycle_in_state), 
-                          Inf)) +  
+                          Inf), 
+                outcomes = c("H", "S1", "S2", curr_state())) +  
   payoffs(cost = cost(state, decision, get_event, die), 
           utility = utility(state, decision, get_event))
 ```
@@ -85,7 +85,7 @@ n_age_max  <- 100 # maximum age of follow up
 #r_S1S2_shape <- 1.1  # shape
 #
 ## Age-dependent mortality rates ----
-lt_usa_2015 <- read.csv("../data/LifeTable_USA_Mx_2015.csv")
+lt_usa_2015 <- read.csv("../inst/extdata/LifeTable_USA_Mx_2015.csv")
 #* Extract age-specific all-cause mortality for ages in model time horizon
 v_r_mort_by_age <- lt_usa_2015 %>% 
   dplyr::filter(Age >= n_age_init & Age < n_age_max) %>%

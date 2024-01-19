@@ -19,11 +19,11 @@
 \item{print_model_function}{}
 }
 \value{
-model strucuture and generates the model function
+model_struc and generates model function code
 }
 \description{
 Title
 }
 \examples{
-print("vignette(package = 'gmod')")
+print("see vignettes: vignettes(package='gmod')")
 }

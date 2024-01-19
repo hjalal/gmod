@@ -10,11 +10,11 @@ gmod_gen_model_function(x, ...)
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
 \value{
-model strucuture and generates the model function
+model_struc and generates model function code
 }
 \description{
 runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 }
 \examples{
-gmod_evaluate(numerical_model_structure)
+print("see vignettes: vignettes(package='gmod')")
 }

@@ -34,20 +34,20 @@ mygmod <- gmod(model_type = "Decision") +
   #events("DIE", "HVE","get_comp") + 
   event_mapping(event = "DIE",  
             values = c(T, F), 
-            outcomes = c("Death", "HVE_event"), 
-            probs = c(pDie(decision), Inf)) + 
+            probs = c(pDie(decision), Inf), 
+            outcomes = c("Death", "HVE_event")) + 
   event_mapping(event = "HVE_event",  
             values = c(T, F), 
-            outcomes = c("get_HVE_comp", "get_OVE_comp"), 
-            probs = c(p_HVE, Inf)) +
+            probs = c(p_HVE, Inf), 
+            outcomes = c("get_HVE_comp", "get_OVE_comp")) +
   event_mapping(event = "get_HVE_comp", 
             values = c(T, F),
-            outcomes = c("HVE_comp", "no_HVE_comp"),
-            probs = c(p_comp(decision, HVE = TRUE), Inf))  +
+            probs = c(p_comp(decision, HVE = TRUE), Inf),
+            outcomes = c("HVE_comp", "no_HVE_comp"))  +
   event_mapping(event = "get_OVE_comp", 
             values = c(T, F),
-            outcomes = c("OVE_comp", "no_OVE_comp"),
-            probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
+            probs = c(p_comp(decision, HVE = FALSE), Inf),
+            outcomes = c("OVE_comp", "no_OVE_comp")) + 
   #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
   payoffs(cost = cost(decision, final_outcome),  
           effectiveness = effectiveness(decision, final_outcome))
@@ -61,30 +61,8 @@ Define the model parameters.
 v_names_str    <- c("No Tx", "Tx All", "Biopsy")  # names of strategies
 n_str          <- length(v_names_str)             # number of strategies
 wtp            <- 100000                          # willingness to pay threshold
-# 
-# # Probabilities
-# p_HVE          <- 0.52   # prevalence of HVE
-# p_HVE_comp     <- 0.71   # complications with untreated HVE
-# p_OVE_comp     <- 0.01   # complications with untreated OVE
-# p_HVE_comp_tx  <- 0.36   # complications with treated HVE
-# p_OVE_comp_tx  <- 0.20   # complications with treated OVE
-# p_biopsy_death <- 0.005  # probability of death due to biopsy
-# 
-# # Costs
-# c_VE           <- 1200   # cost of viral encephalitis care without complications
-# c_VE_comp      <- 9000   # cost of viral encephalitis care with complications
-# c_tx           <- 9500   # cost of treatment
-# c_biopsy       <- 25000  # cost of brain biopsy
-# 
-# # QALYs
-# q_VE           <- 20     # remaining QALYs for those without VE-related complications
-# q_VE_comp      <- 19     # remaining QALYs for those with VE-related complications
-# q_loss_biopsy  <- 0.01   # one-time QALY loss due to brain biopsy
-# q_death_biopsy <- 0      # remaining QALYs for those who died during biopsy
 
 params <- list(
-#        v_names_str    <- c("No Tx", "Tx All", "Biopsy")  # names of strategies
-#        n_str          <- length(v_names_str)             # number of strategies
         wtp            = 100000 ,                         # willingness to pay threshold
 
         # Probabilities,
@@ -158,7 +136,6 @@ model_struc
 
 ```{r}
 model_res <- gmod_gen_model_function(model_struc)
-#model_res <- gmod_evaluate(model_struc, params = NULL)
 model_res
 ```
 

@@ -16,11 +16,11 @@
 \item{model_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
 \value{
-model strucuture and generates the model function
+model_struc and generates model function code
 }
 \description{
 runs the markov model and returns the traces and summary outcomes
 }
 \examples{
-gmod_evaluate(numerical_model_structure)
+print("see vignettes: vignettes(package='gmod')")
 }

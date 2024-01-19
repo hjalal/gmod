@@ -72,8 +72,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "H", probs = 1) +
   event_mapping(event = "only_event",  
               values = c("get_sick", "die", "stay"), 
-              outcomes = c("S", "D", curr_state()), 
-              probs = c(pGetSick(state), pDie(decision, state), Inf)) +  
+              probs = c(pGetSick(state), pDie(decision, state), Inf), 
+              outcomes = c("S", "D", curr_state())) +  
   payoffs(cost = compute_cost(decision, state))
 ```
 
@@ -86,8 +86,8 @@ Here are the explanation of what each layer does:
 * `event_mapping(...)`: is the most important feature in gmod and it governs how the states are linked through events. In the Grammar of Modeling we distinguish between a *state* and an *event*. We use a noun for a `state` to indicate where the cohort stays a full cycle (e.g., one year), and use a verb to refer to an `event`, which in a Markov world is instantaneous and doesn't take any time at all (e.g., `get_sick` for getting sick). There has to be at least one `event_mapping` layer, but there can be more events that can be linked to each other as we explain below. The event mapping takes in four arguments: event, values, outcomes, probs.  We will explain each of these separately: 
   * `event = "only_event"`: defines the event name.  Each event must have a unique name that can be referenced by other evnets.
   * `values = c("get_sick", "die", "stay")`: defines the values of that event: here the event can be getting sick, dying or staying in the current state. 
-  * `outcomes = c("S", "D", curr_state())`: defines the outcomes of each one of the event values.  getting sick ends up in the S state, dying ends up in the D state, and staying will return to whichever state the cohort was in using the special function `curr_state()`. 
   * `probs = c(pGetSick(state), pDie(decision, state), Inf))`: these are the probabilities of the event values.  A powerful feature of gmod is that it allows these probabilities to be conditional on other model components.  Here we define the probability of only_event==get_sick by calling pGetSick(state) which is dependent on the state. Similarly, the probability of only_event==die is defined by calling `pDie(decision, state)` which we tell gmod that is dependent on the state and the decision. In the next section, we define `pGetSick` and `pDie` functions. The `Inf` is used to tell gmod to compute the complementary probability (i.e., 1-pGetSick(state)-pDie(state)) to reduce the amount of typing needed. 
+  * `outcomes = c("S", "D", curr_state())`: defines the outcomes of each one of the event values.  getting sick ends up in the S state, dying ends up in the D state, and staying will return to whichever state the cohort was in using the special function `curr_state()`. 
 * `payoffs(cost = cost(decision, state))`: defines the payoffs. Here we only have a cost payoff that is dependent on the state and decision.  More than one payoff can be described here. And, similar to the probs argument these can be a function of other model components, such as decision, state, cycles, events, tunnels, ...etc 
 
 ## User-defined functions for probabilities and payoffs
@@ -199,8 +199,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = c("H", "S", "D"), probs = c(pH0, pS0, Inf)) + 
   event_mapping(event = "only_event",  
               values = c("get_sick", "die", "stay"), 
-              outcomes = c("S", "D", curr_state()), 
-              probs = c(pGetSick(state), pDie(decision, state), Inf)) +  
+              probs = c(pGetSick(state), pDie(decision, state), Inf), 
+              outcomes = c("S", "D", curr_state())) +  
   payoffs(cost = compute_cost(decision, state))
   
 # creating the updated function and evaluating it
@@ -223,8 +223,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "H", probs = 1) + 
   event_mapping(event = "only_event",  
               values = c("get_sick", "die", "stay"), 
-              outcomes = c("S", "D", curr_state()), 
-              probs = c(pGetSick(state), pDie(decision, state), Inf)) +  
+              probs = c(pGetSick(state), pDie(decision, state), Inf), 
+              outcomes = c("S", "D", curr_state())) +  
   payoffs(cost = compute_cost(decision, state), 
           effectiveness = compute_effectiveness(state)) + 
   discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.03, 0.03))
@@ -254,8 +254,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "H", probs = 1) +
   event_mapping(event = "only_event",  
               values = c("get_sick", "die", "stay"), 
-              outcomes = c("S", "D", curr_state()), 
-              probs = c(pGetSick(state), pDie(decision, state, cycle), Inf)) +  
+              probs = c(pGetSick(state), pDie(decision, state, cycle), Inf), 
+              outcomes = c("S", "D", curr_state())) +  
   payoffs(cost = compute_cost(decision, state, cycle))
 
 pGetSick <- function(state){
@@ -310,8 +310,8 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "H", probs = 1) +
   event_mapping(event = "only_event",  
               values = c("get_sick", "die", "stay"), 
-              outcomes = c("S", "D", curr_state()), 
-              probs = c(pGetSick(state), pDie(decision, state, cycle_in_state), Inf)) + #
+              probs = c(pGetSick(state), pDie(decision, state, cycle_in_state), Inf), 
+              outcomes = c("S", "D", curr_state())) + #
   payoffs(cost = compute_cost(decision, state, cycle_in_state)) #
 
 pGetSick <- function(state){
@@ -384,12 +384,12 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "Alive", probs = 1) +
   event_mapping(event = "get_sick",  
               values = c(TRUE, FALSE), 
-              outcomes = c("die", "die"), 
-              probs = c(0.05, Inf)) +  
+              probs = c(0.05, Inf), 
+              outcomes = c("die", "die")) +  
   event_mapping(event = "die",  
               values = c(TRUE, FALSE), 
-              outcomes = c("Dead", curr_state()), 
-              probs = c(pDie(state), Inf)) +  
+              probs = c(pDie(state), Inf), 
+              outcomes = c("Dead", curr_state())) +  
   payoffs(cost = compute_cost(state))
 
 pDie <- function(state){
@@ -426,12 +426,12 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "Alive", probs = 1) +
   event_mapping(event = "get_sick",  
               values = c(TRUE, FALSE), 
-              outcomes = c("die", "die"), 
-              probs = c(0.05, Inf)) +  
+              probs = c(0.05, Inf), 
+              outcomes = c("die", "die")) +  
     event_mapping(event = "die",  
               values = c(TRUE, FALSE), 
-              outcomes = c("Dead", curr_state()), 
-              probs = c(pDie(state, get_sick), Inf)) +  
+              probs = c(pDie(state, get_sick), Inf), 
+              outcomes = c("Dead", curr_state())) +  
   payoffs(cost = compute_cost(state, get_sick))
 
 pDie <- function(state, get_sick){
@@ -485,12 +485,12 @@ mygmod <- gmod(model_type = "Markov", n_cycles = 5) +
   initial_probs(states = "Alive", probs = 1) +
   event_mapping(event = "get_sick",  
               values = c(TRUE, FALSE), 
-              outcomes = c("die", "die"), 
-              probs = c(0.05, Inf)) +  
+              probs = c(0.05, Inf), 
+              outcomes = c("die", "die")) +  
     event_mapping(event = "die",  
               values = c(TRUE, FALSE), 
-              outcomes = c("Dead", curr_state()), 
-              probs = c(pDie(state, get_sick), Inf)) +  
+              probs = c(pDie(state, get_sick), Inf), 
+              outcomes = c("Dead", curr_state())) +  
   payoffs(cost = compute_cost(state, get_sick))
 
 pDie <- function(state, get_sick){
