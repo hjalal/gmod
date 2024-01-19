@@ -15,5 +15,9 @@
 gmod_obj
 }
 \description{
-Define a method for the \code{+} operator for \code{gmod} objects
+Adds layers to the gmod object
+}
+\examples{
+mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
+decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB")
 }

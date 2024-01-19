@@ -106,16 +106,19 @@ payoff2liststring <- function(input_string){
 # gets the state and tunnel out of a tunnel state
 #' Title
 #'
-#' @param tunnel_state 
-#'
-#' @return
+#' @param tunnel_state the name of the tunnel state
+#' @description
+#' decomposes an expanded state into the state name and cycle_in_state. If the state is not a tunnel, it will return cycle_in_state=1
+#' 
+#' @return list consisting of the name of the state and it's cycle_in_state value
 #' @export
 #'
 #' @examples
+#' tunnel2state("sick_tnl5")
 tunnel2state <- function(tunnel_state){
   state_comp <- strsplit(tunnel_state, "_tnl")[[1]]
   if (length(state_comp) == 1){
-    state_comp[2] <- 0
+    state_comp[2] <- 1 #0
   }
   #names(state_comp) <- c("state", "tunnel")
   return(list(state = state_comp[1], cycle_in_state = as.numeric(state_comp[2])))
@@ -187,11 +190,12 @@ parse_object <- function(x){
 #' Title
 #'
 #' @param rate 
-#'
-#' @return
+#' @description converts rate to probability using prob = 1-exp(-rate)
+#' @return probability 
 #' @export
 #'
 #' @examples
+#' rate2prob(rate = 0.3)
 rate2prob <- function(rate){
   1 - exp(-rate)
 }
@@ -199,11 +203,12 @@ rate2prob <- function(rate){
 #' Title
 #'
 #' @param prob 
-#'
-#' @return
+#' @description converts prob to rate using rate = -log(1-prob)
+#' @return rate 
 #' @export
 #'
 #' @examples
+#' prob2rate(prob = 0.5)
 prob2rate <- function(prob){
   -log(1-prob)
 }

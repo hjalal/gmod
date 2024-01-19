@@ -7,7 +7,9 @@
 initial_probs(states, probs)
 }
 \arguments{
-\item{probs}{}
+\item{states}{state names for which we assign initial probabilities}
+
+\item{probs}{the initial probabilities corresponding to the states}
 }
 \value{
 a gmod layer with initial probabilities

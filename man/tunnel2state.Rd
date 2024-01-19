@@ -7,8 +7,14 @@
 tunnel2state(tunnel_state)
 }
 \arguments{
-\item{tunnel_state}{}
+\item{tunnel_state}{the name of the tunnel state}
+}
+\value{
+list consisting of the name of the state and it's cycle_in_state value
 }
 \description{
-Title
+decomposes an expanded state into the state name and cycle_in_state. If the state is not a tunnel, it will return cycle_in_state=1
+}
+\examples{
+tunnel2state("sick_tnl5")
 }

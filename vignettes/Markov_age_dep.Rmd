@@ -213,27 +213,23 @@ utility <- function(state, decision, get_event){
 }
 ```
 
-Then, we build the gmod Markov model by using the `gmod_build()` function.
-```{r}
-model_struc <- gmod_build(mygmod)
-model_struc
-```
-The output is the structure of the model including the formulae.  
 
+The output is the structure of the model including the formulae using `gmod_gen_model_function()` and then calling the generated function `my_markov_model()`.  
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical outcomes. 
 ```{r}
-model_res <- gmod_evaluate(model_struc)
+model_struc <- gmod_gen_model_function(mygmod)
+model_res <- my_markov_model(model_struc, return_trace = T)
 #model_res
 ```
 The warning just indicates that no parameters were passed, so gmod uses the values in the global environment.  For analyses, such as probabilistic sensitivity analysis (PSA), we can pass the parameters as a list `param`. 
 
 We can load individual outcomes here that we are interested in. For example, if we are interested in the Markov Trace of the Standard of Care treatment, we can type: 
 ```{r}
-model_res$Trace$StandardOfCare
+model_res$Trace
 ```
 
 Similarly, we can load the summary outcomes of the costs and utility of the strategies, such that:
 ```{r}
-model_res$Summary
+model_res$summary_payoffs
 ```
 

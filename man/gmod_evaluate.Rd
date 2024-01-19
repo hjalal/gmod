@@ -9,6 +9,9 @@ gmod_evaluate(x, ...)
 \arguments{
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
+\value{
+gmod object
+}
 \description{
 runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 }

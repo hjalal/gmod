@@ -7,11 +7,11 @@
 prob_left()
 }
 \value{
-"curr_state"
+Inf
 }
 \description{
 A function used inside event_mapping(probs = ) placeholder for returning Inf. which will be used internally to return the complementary probabilities
 }
 \examples{
-curr_state() 
+prob_left() 
 }

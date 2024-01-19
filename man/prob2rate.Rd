@@ -9,6 +9,12 @@ prob2rate(prob)
 \arguments{
 \item{prob}{}
 }
+\value{
+rate
+}
 \description{
-Title
+converts prob to rate using rate = -log(1-prob)
+}
+\examples{
+prob2rate(prob = 0.5)
 }

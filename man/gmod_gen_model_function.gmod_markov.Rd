@@ -5,14 +5,18 @@
 \title{Runs the markov model}
 \usage{
 \method{gmod_gen_model_function}{gmod_markov}(
-  model_struc,
+  mygmod,
   model_function_name = "my_markov_model",
   print_model_function = FALSE,
-  sparse = FALSE
+  sparse = FALSE,
+  return_model_structure = TRUE
 )
 }
 \arguments{
 \item{model_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
+}
+\value{
+model strucuture and generates the model function
 }
 \description{
 runs the markov model and returns the traces and summary outcomes

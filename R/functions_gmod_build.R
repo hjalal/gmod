@@ -29,11 +29,14 @@ gmod <- function(model_type, n_cycles = 50) {
 #'
 #' @param gmod_obj 
 #' @param layer 
-#'
+#' @description Adds layers to the gmod object
 #' @return gmod_obj
 #' @export
 #'
 #' @examples 
+#' mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
+#' decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB")
+
 `+.gmod_class` <- function(gmod_obj, layer) {
   # Add the layer to the gmod object
   gmod_obj$layers <- c(gmod_obj$layers, list(layer))
@@ -80,8 +83,8 @@ event_mapping <- function(event, values, outcomes, probs, payoffs=NULL){
 
 #' Add initial probabilities to a Markov gmod object
 #'
-#' @param states
-#' @param probs
+#' @param states state names for which we assign initial probabilities
+#' @param probs the initial probabilities corresponding to the states
 #'
 #' @return a gmod layer with initial probabilities
 #' @export
@@ -110,13 +113,13 @@ discounts <- function(payoffs, discounts){
 
 #' Title
 #'
-#' @param states 
-#' @param lengths 
+#' @param states names of the states to expand
+#' @param lengths the length of each tunnel state
 #'
 #' @return a gmod layer with tunnels
 #' @export
 #'
-#' @examples
+#' @examples tunnels(states = c("S1", "S2"), lengths = c(3, 5))
 tunnels <- function(states, lengths = NULL){
   list(type = "tunnels", states = states, lengths = lengths)
 }
@@ -176,7 +179,6 @@ payoffs <- function(...){
 
 #' Current state
 #' @description A function used inside event_mapping(probs = ) placeholder for returning the current state
-#' @param 
 #'
 #' @return "curr_state"
 #' @export
@@ -188,25 +190,13 @@ curr_state <- function(){
 
 #' Complementary probability
 #' @description A function used inside event_mapping(probs = ) placeholder for returning Inf. which will be used internally to return the complementary probabilities
-#' @param 
 #'
-#' @return "curr_state"
+#' @return Inf
 #' @export
 #'
-#' @examples curr_state() 
+#' @examples prob_left() 
 prob_left <- function() {
   return(Inf)
 }
 
-#' Value of a previous event  
-#' @description A function used inside event_mapping(probs = ) placeholder for returning the value of the previous event
-#' @param 
-#'
-#' @return "curr_state"
-#' @export
-#'
-#' @examples curr_state() 
-prev_event <- function(...){
-  args <- list(...)
-  return(unlist(args))
-}
+

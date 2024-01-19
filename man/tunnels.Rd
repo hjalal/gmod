@@ -7,13 +7,16 @@
 tunnels(states, lengths = NULL)
 }
 \arguments{
-\item{states}{}
+\item{states}{names of the states to expand}
 
-\item{lengths}{}
+\item{lengths}{the length of each tunnel state}
 }
 \value{
 a gmod layer with tunnels
 }
 \description{
 Title
+}
+\examples{
+tunnels(states = c("S1", "S2"), lengths = c(3, 5))
 }

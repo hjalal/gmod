@@ -5,19 +5,22 @@ library(gmod)
 pSick <- function(decision){
   if (decision == "A") 0.5 else 0.7
 }
+utility <- function(get_infection){
+  if(get_infection) 0.5 else 1
+}
 mygmod <- gmod(model_type = "Decision") + 
   decisions("A", "B") + 
   event_mapping(event = "get_infection",  
                 values = c(T, F), 
                 outcomes = c("Sick", "Healthy"), 
                 probs = c(pSick(decision), Inf)) + 
-  payoffs(utility = )
+  payoffs(utility = utility(get_infection))
 
-model_struc <- gmod_build(mygmod)
-model_struc
-#model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_struc)
-model_res
+model_struc <- gmod_gen_model_function(mygmod)
+model_res <- my_decision_model(params=NULL)
+print(model_res)
+
+
 
 
 ## rock climber example ======= 
@@ -26,7 +29,11 @@ pDie <- function(decision){
 }
 pDie("Amputate")
 pDie("Antibiotics")
-
+utility <- function(COMPL, decision){
+  if(COMPL) 
+    if(decision=="Amputate") 0.4 else 0.6
+  else 1
+}
 mygmod <- gmod(model_type = "Decision") + 
   decisions("Amputate", "Antibiotics") + 
   #final_outcomes("Dead", "Alive") +
@@ -38,14 +45,13 @@ mygmod <- gmod(model_type = "Decision") +
   event_mapping(event = "DIE",  
             values = c(T, F), 
             outcomes = c("Dead", "Alive"), 
-            probs = c(pDie(decision), Inf)) 
+            probs = c(pDie(decision), Inf)) + 
+  payoffs(utility = utility(COMPL, decision))
 
-model_struc <- gmod_build(mygmod)
-model_struc
-model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_num_struc)
-
+model_struc <- gmod_gen_model_function(mygmod)
+model_res <- my_decision_model(params=NULL)
 print(model_res)
+
 
 ## HVE/OVE example ========
 rm(list = ls())
@@ -89,7 +95,6 @@ p_comp <- function(decision, HVE){
   if (decision == "Biopsy" & HVE) return(p_HVE_comp_tx)
   if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
 }
-p_comp(decision = "Biopsy", prev_event = "OVE")
 c_HVE <- function(decision){
   if (decision == "biopsy") c_tx else 0
 }
@@ -124,18 +129,19 @@ mygmod <- gmod(model_type = "Decision") +
   event_mapping(event = "get_HVE_comp", 
             values = c(T, F),
             outcomes = c("HVE_comp", "no_HVE_comp"),
-            probs = c(p_comp(decision, HVE = TRUE), Inf))  +
+            probs = c(p_comp(decision, HVE), Inf))  +
   event_mapping(event = "get_OVE_comp", 
             values = c(T, F),
             outcomes = c("OVE_comp", "no_OVE_comp"),
-            probs = c(p_comp(decision, HVE = FALSE), Inf)) + 
+            probs = c(p_comp(decision, HVE), Inf)) + 
   #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
   payoffs(cost = cost(decision, final_outcome),  
           effectiveness = effectiveness(decision, final_outcome))
 
-model_struc <- gmod_build(mygmod)
-model_num_struc <- gmod_parse(model_struc, params = NULL)
-model_res <- gmod_evaluate(model_num_struc)
+model_struc <- gmod_gen_model_function(mygmod)
+model_res <- my_decision_model(params=NULL)
+print(model_res)
+
 
 print(model_res)
 

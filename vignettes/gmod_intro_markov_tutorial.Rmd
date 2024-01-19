@@ -168,16 +168,13 @@ utility <- function(state, decision){
 }
 ```
 
-Then, we build the gmod Markov model by using the `gmod_build()` function.
-```{r}
-model_struc <- gmod_build(mygmod)
-model_struc
-```
+Then, we build the gmod Markov model by using the `gmod_gen_model_function()` function.
 The output is the structure of the model including the formulae.  
 
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical outcomes. 
+The model structure can also be returned directly from the 
 ```{r}
-gmod_gen_model_function(model_struc)
+model_struc <- gmod_gen_model_function(mygmod)
 #model_res
 ```
 

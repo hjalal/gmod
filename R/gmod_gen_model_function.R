@@ -2,7 +2,7 @@
 #' @description runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #'
-#' @return
+#' @return model strucuture and generates the model function
 #' @export
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
@@ -13,17 +13,13 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @param model_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #' @export
 #' 
-#' @return
+#' @return model strucuture and generates the model function
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
-gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE){
-  
+gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
+  model_struc <- gmod_build(mygmod) 
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
-  #model_lines <- c(model_lines, "attach(params)")
-  #model_lines <- c(model_lines, "create_variables(params, envir = environment())")
-  #model_lines <- c(model_lines, "print(r_HS1)")
-  #model_lines <- c(model_lines, "print(environment())")
   
   # is model cycle dep? 
   is_cycle_dep <- model_struc$is_cycle_dep
@@ -39,7 +35,6 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   model_lines <- c(model_lines, "n_decisions <- model_struc$n_decisions")
   model_lines <- c(model_lines, "n_cycles <- model_struc$n_cycles")
   model_lines <- c(model_lines, "cycles <- 1:n_cycles")
-  #model_lines <- c(model_lines, "cycle_names <- paste0('cycle_', cycles)")
   states <- model_struc$states
   n_states <- model_struc$n_states
   model_lines <- c(model_lines, "states_expanded <- model_struc$states_expanded")
@@ -174,7 +169,6 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
       
       # cumulate payoffs across all destinations
       # if dest is the same as state, then add state_payoffs to the same state 
-      #if(dest=="curr_state"){
       if (i == 1){
         model_lines <- c(model_lines, paste0("state_payoffs[", cycle_str, state_str, ",", decision_str,",'", payoff_name,"'] <- ", new_payoff, "+"))
       } else if (i == nrow(model_equations)){
@@ -263,8 +257,11 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, 
              " is generated. It can be run by calling it directly, for example this function returns the summary results:\n", model_function_name, 
              "(model_struc,params,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE)\033[0m\n"))
-  
-  return(TRUE)
+  if(return_model_structure){
+    return(model_struc)
+  } else {
+    return(TRUE)
+  }
 }
 
 
@@ -277,11 +274,13 @@ gmod_gen_model_function.gmod_markov <- function(model_struc, model_function_name
 #' @param model_function_name 
 #' @param print_model_function 
 #'
-#' @return
+#' @return model strucuture and generates the model function
 #' @export
 #'
 #' @examples
-gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE){
+#' print("vignette(package = 'gmod')")
+gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE, return_model_structure = TRUE){
+  model_struc <- gmod_build(mygmod)
   # build model as a vector of strings 
   model_lines <- paste0(model_function_name, "<- function(params=NULL){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir = .GlobalEnv)")
@@ -315,7 +314,11 @@ gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_na
   # Assign the new function to the global environment
   assign(model_function_name, new_func, envir = .GlobalEnv)
   cat(paste0("\n\n\033[94mNote:Model function ", model_function_name, " is generated. It can be run by calling it directly:\n", model_function_name, "(params)\033[0m\n"))
-  return(TRUE)
+  if(return_model_structure){
+    return(model_struc)
+  } else {
+    return(TRUE)
+  }
 }
 
 create_variables <- function(params, envir) {

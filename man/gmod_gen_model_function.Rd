@@ -9,6 +9,9 @@ gmod_gen_model_function(x, ...)
 \arguments{
 \item{model_num_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
+\value{
+model strucuture and generates the model function
+}
 \description{
 runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 }

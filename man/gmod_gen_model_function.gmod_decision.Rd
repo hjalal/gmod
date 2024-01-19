@@ -7,7 +7,8 @@
 \method{gmod_gen_model_function}{gmod_decision}(
   model_struc,
   model_function_name = "my_decision_model",
-  print_model_function = FALSE
+  print_model_function = FALSE,
+  return_model_structure = TRUE
 )
 }
 \arguments{
@@ -17,6 +18,12 @@
 
 \item{print_model_function}{}
 }
+\value{
+model strucuture and generates the model function
+}
 \description{
 Title
+}
+\examples{
+print("vignette(package = 'gmod')")
 }

@@ -2,7 +2,7 @@
 #' @description runs the decision tree or markov model and returns the outcomes either traces and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #'
-#' @return
+#' @return gmod object
 #' @export
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
@@ -14,7 +14,7 @@ gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #' @export
 #' 
-#' @return
+#' @return gmod object
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_evaluate.gmod_markov <- function(model_struc, model_function_name = "my_markov_model", print_model_function = FALSE){
@@ -185,7 +185,7 @@ construct_Payoff <- function(model_num_struc){
 #' @param model_num_struc a matrix containing the numerical gmod decision object from the gmod_parse() function
 #' @export
 #' 
-#' @return
+#' @return gmod object
 #'
 #' @examples gmod_evaluate(numerical_model_structure)
 gmod_evaluate.gmod_decision <- function(model_struc, params = NULL){

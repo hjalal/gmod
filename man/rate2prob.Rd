@@ -9,6 +9,12 @@ rate2prob(rate)
 \arguments{
 \item{rate}{}
 }
+\value{
+probability
+}
 \description{
-Title
+converts rate to probability using prob = 1-exp(-rate)
+}
+\examples{
+rate2prob(rate = 0.3)
 }
