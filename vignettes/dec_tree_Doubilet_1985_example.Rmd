@@ -210,7 +210,7 @@ This tree is a good example of how events can be reduced significantly and the t
 
 ### Doubilet 1985 fully expanded decision tree in OpenTree
 ```{r, echo=FALSE, out.width='800px'}
-knitr::include_graphics("Doubilet_1985_diagram_OpenTree.png")
+knitr::include_graphics("Doubilet_1985_diagram_OpenTree.jpg")
 
 ```
 
