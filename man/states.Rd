@@ -4,7 +4,7 @@
 \alias{states}
 \title{Add Markov states to a gmod}
 \usage{
-states(...)
+states(names, init_probs, max_cycle_in_states = NULL)
 }
 \arguments{
 \item{...}{Markov state names}

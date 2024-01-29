@@ -29,12 +29,12 @@ library(gmod)
 
 First, we define the gmod object by defining its layers.  
 ```{r}
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("A", "B") + 
-  event_mapping(event = "get_infection",  
-                values = c(T, F), 
-                probs = c(pSick(decision), Inf), 
-                outcomes = c("Sick", "Healthy")) + 
+  event(name = "get_infection",  
+        results = c(T, F), 
+        probs = c(pSick(decision), Inf), 
+        outcomes = c("Sick", "Healthy")) + 
   payoffs(life_expectancy = compute_le(final_outcome))
 
 ```

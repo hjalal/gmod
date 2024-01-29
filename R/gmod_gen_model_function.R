@@ -20,8 +20,8 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
 
-gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
-  model_struc <- gmod_build(mygmod) 
+gmod_gen_model_function.gmod_markov <- function(mygmod, n_cycles, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
+  model_struc <- gmod_build(mygmod, n_cycles) 
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   
@@ -48,7 +48,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, model_function_name = "m
   model_lines <- c(model_lines, paste0("payoff_names <- model_struc$payoff_names"))
   
   model_lines <- c(model_lines,"n_payoffs <- model_struc$n_payoffs")
-  model_lines <- c(model_lines,"discounts <- model_struc$discounts") # a named vector with discount rates
+  model_lines <- c(model_lines,"discounts <- eval(model_struc$discounts)") # because it is an expression. a named vector with discount rates
   
   
   # initialize the transition array and state_payoffs arrays 

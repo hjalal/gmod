@@ -2,19 +2,34 @@
 % Please edit documentation in R/functions_gmod_build.R
 \name{decisions}
 \alias{decisions}
-\title{Add decisions to a gmod}
+\title{Add discounts to a gmod Markov object}
 \usage{
 decisions(...)
 }
 \arguments{
 \item{...}{decision names}
+
+\item{states}{names of the states to expand}
+
+\item{lengths}{the length of each tunnel state}
 }
 \value{
 a gmod layer with decision names
+
+a gmod layer with tunnels
+
+a gmod layer with decision names
 }
 \description{
-Add decisions to a gmod
+Add discounts to a gmod Markov object
 }
 \examples{
+discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.5, 0.5))
+discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.15, 0.15))
+Title
+
+tunnels(states = c("S1", "S2"), lengths = c(3, 5))
+Add decisions to a gmod
+
 decisions("A", "B", "C")
 }

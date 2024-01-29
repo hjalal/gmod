@@ -4,7 +4,7 @@
 \alias{gmod}
 \title{Create a new gmod}
 \usage{
-gmod(model_type, n_cycles = 50)
+gmod()
 }
 \arguments{
 \item{model_type}{}

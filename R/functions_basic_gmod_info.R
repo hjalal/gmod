@@ -23,7 +23,7 @@ add_discounts_info <- function(gmod_obj, model_obj){
     
   } else {
     model_obj$discounts <- discounts_info$discounts
-    names(model_obj$discounts) <- discounts_info$payoffs
+    names(model_obj$discounts) <- c(NA, discounts_info$payoffs)
   }
   return(model_obj)
 }

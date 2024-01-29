@@ -7,18 +7,18 @@ get_event_df <- function(gmod_obj){
     i <- i + 1
     temp_df <- event_layers[[i]] %>% 
       as.data.frame() %>% 
-      dplyr::mutate(values = as.character(values)) %>%
-      dplyr::select(-payoffs) 
-    # process payoffs separately for each layer
-    payoffs_string <- event_layers[[i]]$payoffs 
-    if (payoffs_string == ""){
-      # empty string
-    } else {
-      payoffs <- payoff2liststring(payoffs_string)
-      for (payoff_name in payoffs){
-        temp_df[[names(payoff_name)]] <- payoff_name
-      }
-    }
+      dplyr::mutate(values = as.character(values)) #%>%
+      #dplyr::select(-payoffs) 
+    # # process payoffs separately for each layer
+    # payoffs_string <- event_layers[[i]]$payoffs 
+    # if (payoffs_string == ""){
+    #   # empty string
+    # } else {
+    #   payoffs <- payoff2liststring(payoffs_string)
+    #   for (payoff_name in payoffs){
+    #     temp_df[[names(payoff_name)]] <- payoff_name
+    #   }
+    # }
     event_df_list[[i]] <- temp_df
   }
   event_df <- dplyr::bind_rows(event_df_list) %>% 

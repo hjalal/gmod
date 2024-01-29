@@ -2,7 +2,7 @@
 % Please edit documentation in R/functions_gmod_build.R
 \name{payoffs}
 \alias{payoffs}
-\title{Add payoffs to a gmod}
+\title{Add final_outcomes from a decision tree to a gmod}
 \usage{
 payoffs(...)
 }
@@ -10,11 +10,16 @@ payoffs(...)
 \item{...}{a named list containing the payoffs and the associated payoff functions}
 }
 \value{
+a gmod layer with Decision final_outcome names
+
 a gmod layer with payoffs
 }
 \description{
-Add payoffs to a gmod
+Add final_outcomes from a decision tree to a gmod
 }
 \examples{
+final_outcomes("Alive", "Dead")
+Add payoffs to a gmod
+
 payoffs(cost = cost_function(state), effectiveness = effective_function(state))
 }

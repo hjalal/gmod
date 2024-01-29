@@ -67,48 +67,48 @@ This structure is meant to reproduce the tree structure as presented in Doubilet
 
 ## Binary event final_outcomes similar to Doubilet 1985
 ```{r}
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
   #final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
-  event_mapping(event = "Biopsy",  
-                values = c(TRUE, FALSE), 
+  event(name = "Biopsy",  
+                results = c(TRUE, FALSE), 
                 probs = c(pBiopsy(decision), Inf), 
                 outcomes = c("dieBiop", "HSE"))  + 
-  event_mapping(event = "dieBiop",  
-                values = c(TRUE, FALSE), 
+  event(name = "dieBiop",  
+                results = c(TRUE, FALSE), 
                 probs = c(pDieBiopsy, Inf), 
                 outcomes = c("DEAD", "sevBiopSeq"))  + 
-  event_mapping(event = "sevBiopSeq",  
-                values = c(TRUE, FALSE), 
+  event(name = "sevBiopSeq",  
+                results = c(TRUE, FALSE), 
                 probs = c(pSevBiopsy, Inf), 
                 outcomes = c("HSE", "modBiopSeq"))  + 
-  event_mapping(event = "modBiopSeq",  
-                values = c(TRUE, FALSE), 
+  event(name = "modBiopSeq",  
+                results = c(TRUE, FALSE), 
                 probs = c(pModBiopsy, Inf), 
                 outcomes = c("HSE", "HSE"))  + 
-  event_mapping(event = "HSE",  
-                values = c(TRUE, FALSE), 
+  event(name = "HSE",  
+                results = c(TRUE, FALSE), 
                 probs = c(pHSE, Inf), 
                 outcomes = c("BiopAvail", "BiopAvail"))  +
-  event_mapping(event = "BiopAvail",  
-                values = c(TRUE, FALSE), 
+  event(name = "BiopAvail",  
+                results = c(TRUE, FALSE), 
                 probs = c(pBiopsy(decision), Inf), 
                 outcomes = c("BiopRes", "die"))  + 
-  event_mapping(event = "BiopRes",  
-                #values = c("Positive", "Negative"), 
-                values = c(TRUE, FALSE), 
+  event(name = "BiopRes",  
+                #results = c("Positive", "Negative"), 
+                results = c(TRUE, FALSE), 
                 probs = c(pBiopRes(HSE), Inf), 
                 outcomes = c("die", "die"))  + 
-  event_mapping(event = "die",  
-                values = c(T, F), 
+  event(name = "die",  
+                results = c(T, F), 
                 probs = c(pEvent(HSE, decision, BiopRes, pDieHSE, pDieNoHSE, fDie, addProbDie), Inf), 
                 outcomes = c("DEAD", "sevSeqHSE")) +
-  event_mapping(event = "sevSeqHSE",  
-                values = c(T, F), 
+  event(name = "sevSeqHSE",  
+                results = c(T, F), 
                 probs = c(pEvent(HSE, decision, BiopRes, pSevHSE, pSevNoHSE, fSev, addProbSev), Inf), 
                 outcomes = c("SEVSEQHSE", "modSeqHSE")) +
-  event_mapping(event = "modSeqHSE",  
-                values = c(T, F), 
+  event(name = "modSeqHSE",  
+                results = c(T, F), 
                 probs = c(pEvent(HSE, decision, BiopRes, pModHSE, pModNoHSE, fMod, addProbMod), Inf), 
                 outcomes = c("MODSEQHSE", "MLDSEQHSE")) + 
   payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))

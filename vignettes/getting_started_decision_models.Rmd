@@ -65,10 +65,10 @@ We will start with a simple decision tree to analyze the outcome of a person who
 We can write this decision problem in `gmod()` as:
 
 ```{r}
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
-  event_mapping(event = "die",  
-            values = c(T, F), 
+  event(name = "die",  
+            results = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, die))
@@ -147,14 +147,14 @@ my_decision_model()
 ## adding multiple events 
 
 ```{r}
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
-  event_mapping(event = "get_sick",  
-            values = c(T, F), 
+  event(name = "get_sick",  
+            results = c(T, F), 
             probs = c(pGetSick(decision), Inf), 
             outcomes = c("die", "die")) + 
-  event_mapping(event = "die",  
-            values = c(T, F), 
+  event(name = "die",  
+            results = c(T, F), 
             probs = c(pDie(get_sick), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, get_sick, die))
@@ -191,10 +191,10 @@ params <- list(pDieAmputate = 0.01,
                uAmputate = 0.7,
                uAntibiotics = 0.9,
                uDead = 0)
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
-  event_mapping(event = "die",  
-            values = c(T, F), 
+  event(name = "die",  
+            results = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, die))

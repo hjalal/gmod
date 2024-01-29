@@ -8,21 +8,11 @@
 #' @importFrom magrittr %>%
 #' @examples gmod(model_type = "Markov", n_cycles = 40)
 #' 
-gmod <- function(model_type, n_cycles = 50) {
+gmod <- function() {
   gmod_obj <- list()
-  model_type <- tolower(model_type)
-  if (model_type == "markov"){
-    class(gmod_obj) <- c("gmod_markov", "gmod_class")
-    # by default is time independent - becomes time dep if there is n_cycles in one of the events
-    gmod_obj$n_cycles <- n_cycles
-  } else if (model_type == "decision"){
-    class(gmod_obj) <- c("gmod_decision", "gmod_class")
-  } else {
-    stop(paste("model_type can either be Markov or Decision. Model type = ", model_type, "is not supported."))
-  }
+  class(gmod_obj) <- c("gmod_decision", "gmod_class")
   gmod_obj
 }
-
 
 
 #' Define a method for the `+` operator for `gmod` objects
@@ -38,8 +28,22 @@ gmod <- function(model_type, n_cycles = 50) {
 #' decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB")
 
 `+.gmod_class` <- function(gmod_obj, layer) {
-  # Add the layer to the gmod object
-  gmod_obj$layers <- c(gmod_obj$layers, list(layer))
+  if (is.null(layer$type)){ 
+    if (layer[[1]]$type=="states"){ # split the layer into 3
+      for (l in layer){
+        gmod_obj$layers <- c(gmod_obj$layers, list(l))
+      }
+      class(gmod_obj) <- NULL
+      class(gmod_obj) <- c("gmod_markov", "gmod_class")
+    } else if (layer[[1]]$type=="payoffs"){
+      for (l in layer){
+        gmod_obj$layers <- c(gmod_obj$layers, list(l))
+      }
+  }
+  } else {
+    # Add the layer to the gmod object
+    gmod_obj$layers <- c(gmod_obj$layers, list(layer))
+  }
   # Return the modified gmod object
   gmod_obj
 }
@@ -48,54 +52,39 @@ gmod <- function(model_type, n_cycles = 50) {
 
 #' Add event mapping
 #'
-#' @param event 
-#' @param values 
-#' @param outcomes 
+#' @param name 
+#' @param results 
 #' @param probs 
-#' @param payoffs 
+#' @param outcomes 
 #'
 #' @return gmod layer 
 #' @export
 #'
-#' @examples event_mapping(event = "event_progress", 
-#' values = c(TRUE,FALSE), 
-#' outcomes = c("Severe",curr_state()), 
+#' @examples event_mapping(name = "event_progress", 
+#' results = c(TRUE,FALSE), 
 #' probs = c(p_progress_function(state), Inf), 
-#' payoffs = list(cost = c(cProgress, cNotProgress)))
-
-event_mapping <- function(event, values, outcomes, probs, payoffs=NULL){
+#' outcomes = c("Severe","curr_state")
+#' 
+event <- function(name, results, probs, outcomes){
   # events are the links that can either go to states or other events
   input_string <- paste0(deparse(substitute(probs)), collapse = "")
   
-  payoffs_string <- paste0(deparse(substitute(payoffs)), collapse = "")
-  if (payoffs_string == "NULL"){
-    payoffs_string <- ""
-  }
+  # payoffs_string <- paste0(deparse(substitute(payoffs)), collapse = "")
+  # if (payoffs_string == "NULL"){
+  #   payoffs_string <- ""
+  # }
   #input_string <- as.list(match.call())$probs
   list(type = "event", 
-       event = event, 
-       values = values, 
-       outcomes = outcomes, 
+       event = name, 
+       values = results, 
        probs = probs2string(input_string),
-       payoffs = payoffs_string
+       outcomes = outcomes #,
+       #payoffs = payoffs_string
   )
 }
 
-#' Add initial probabilities to a Markov gmod object
-#'
-#' @param states state names for which we assign initial probabilities
-#' @param probs the initial probabilities corresponding to the states
-#'
-#' @return a gmod layer with initial probabilities
-#' @export
-#'
-#' @examples initial_probs(states = c("Healthy", "Sick", "Dead"), probs = c(1,0,0))
-#' @examples initial_probs(states = c("Healthy", "Sick", "Dead"), probs = c(0.5,0.3,Inf))
-#' @examples initial_probs(states = "Healthy", probs = 1)
 
-initial_probs <- function(states, probs){
-  list(type = "initial_prob", states = states, probs = probs)
-}
+
 
 
 #' Add discounts to a gmod Markov object
@@ -107,9 +96,7 @@ initial_probs <- function(states, probs){
 #'
 #' @examples discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.5, 0.5))
 #' @examples discounts(payoffs = c("cost", "effectiveness"), discounts = c(0.15, 0.15))
-discounts <- function(payoffs, discounts){
-  list(type = "discounts", payoffs = payoffs, discounts = discounts)
-}
+
 
 #' Title
 #'
@@ -120,9 +107,7 @@ discounts <- function(payoffs, discounts){
 #' @export
 #'
 #' @examples tunnels(states = c("S1", "S2"), lengths = c(3, 5))
-tunnels <- function(states, lengths = NULL){
-  list(type = "tunnels", states = states, lengths = lengths)
-}
+
 
 
 #' Add decisions to a gmod
@@ -147,8 +132,21 @@ decisions <- function(...){
 #' @export
 #'
 #' @examples states("Healthy", "Sick", "Dead")
-states <- function(...){
-  list(type = "states", states = c(...))
+states <- function(names, init_probs, max_cycle_in_states = NULL){
+  l1<- list(type = "states", states = names)
+  l2<- list(type = "initial_prob", states = names, probs = init_probs)
+  
+  tunnel_names <- names[max_cycle_in_states > 1]
+  tunnel_lengths <- max_cycle_in_states[max_cycle_in_states>1]
+  
+  if (length(tunnel_names)>0){
+    l3<- list(type = "tunnels", states = tunnel_names, lengths = tunnel_lengths)
+    l <- list(l1,l2,l3)
+    
+  } else {
+    l <- list(l1,l2)
+  }
+  return(l)
 }
 
 #' Add final_outcomes from a decision tree to a gmod
@@ -159,9 +157,9 @@ states <- function(...){
 #' @export
 #'
 #' @examples final_outcomes("Alive", "Dead")
-final_outcomes <- function(...){
-  list(type = "final_outcomes", final_outcomes = c(...))
-}
+# final_outcomes <- function(...){
+#   list(type = "final_outcomes", final_outcomes = c(...))
+# }
 
 #' Add payoffs to a gmod
 #'
@@ -173,30 +171,20 @@ final_outcomes <- function(...){
 #' @examples payoffs(cost = cost_function(state), effectiveness = effective_function(state))
 payoffs <- function(...){
   input_string <- as.list(match.call())
-  list(type = "payoffs", payoffs = input_string[-1])
+  payoffs <- input_string[-1]
+  payoffs$discount_rates <- NULL
+  l1 <- list(type = "payoffs", payoffs = payoffs)
+  discounts <- input_string$discount_rates
+  if (length(discounts)>0){
+    names(discounts) <- c(NA, names(payoffs))
+    l2 <- list(type = "discounts", payoffs = names(payoffs), discounts = discounts)
+    l <- list(l1,l2)
+  } else {
+    l <- l1
+  }
+return(l)
 }
 
 
-#' Current state
-#' @description A function used inside event_mapping(probs = ) placeholder for returning the current state
-#'
-#' @return "curr_state"
-#' @export
-#'
-#' @examples curr_state()
-curr_state <- function(){
-  return("curr_state")
-}
-
-#' Complementary probability
-#' @description A function used inside event_mapping(probs = ) placeholder for returning Inf. which will be used internally to return the complementary probabilities
-#'
-#' @return Inf
-#' @export
-#'
-#' @examples prob_left() 
-prob_left <- function() {
-  return(Inf)
-}
 
 

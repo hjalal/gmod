@@ -36,31 +36,30 @@ library(magrittr)
 
 Define the model structure.  Note that the model is structured in a way that the event "die" happens first and if one survives they go to the rest of the evnets, whether recover, getsick progress or stay in their health state depending on where they were and the decision taken
 ```{r}
-mygmod <- gmod(model_type = "Markov", n_cycles = 75) + 
+mygmod <- gmod() + 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
-  states("H", "S1", "S2", "D") + 
-  discounts(payoffs = c("cost", "utility"), discounts = c(0.03, 0.03)) + 
-  initial_probs(states = "H", probs = 1) +
-  event_mapping(event = "die",  
-              values = c(T, F), 
-              probs = c(pDie(state, cycle, v_r_mort_by_age), Inf), 
-              outcomes = c("D", "get_event")) +  
-  event_mapping(event = "get_event",  
-                values = c("recover", "getsick", "progress", "stay"), 
-                probs = c(pRecover(state), 
-                          pGetSick(state), 
-                          pProgress(state, decision), 
-                          Inf), 
-                outcomes = c("H", "S1", "S2", curr_state())) +  
+  states(names = c("H", "S1", "S2", "D"), init_probs = c(1,0,0,0), max_cycle_in_states = c(1,1,1,1)) + 
+  event(name = "die",  
+        results = c(T, F), 
+        probs = c(pDie(state, cycle, v_r_mort_by_age), Inf), 
+        outcomes = c("D", "get_event")) +  
+  event(name = "get_event",  
+        results = c("recover", "getsick", "progress", "stay"), 
+        probs = c(pRecover(state), 
+                  pGetSick(state), 
+                  pProgress(state, decision), 
+                  Inf), 
+                outcomes = c("H", "S1", "S2", "curr_state")) +  
   payoffs(cost = cost(state, decision, get_event, die), 
-          utility = utility(state, decision, get_event))
+          utility = utility(state, decision, get_event),
+          discount_rates = c(0.03, 0.03))
 ```
 
 The `gmod()` function defines the model type as a Markov model and number of cycles as 75. The `decision()` function defines the treatment strategies.  The `initial_probs()` defines the initial probabilities. Here we only define the "Moderate" states as the starting state with probability equals 1. The other states will be set to 0. 
 
 Since the tutorial assumes that all the events happen simultaneously (i.e., no sequence), we add a single `event_mapping()` layer we model the individual final_outcomes separately.  We can interpret the event_mapping as the following: The event `get_event` can have 5 values: recover, getsick, progress, die, or stay in the same state.  These values will outcome in the following states: H, S1, S2, D and staying in the current state, respectively. The prob argument defines the probability of these final_outcomes.  For example, pRecover() defins the probability of recovering and it is a function of state because this probability is only applied if the state is "S1", and is 0 otherwise. Note here we use `Inf` here is as a placeholder to reduce the amount of typing required. Then, we define the payoffs of cost and utility and define each as a function of the state and the decision taken.
 
-The `curr_state()` is a build-in function that instructs gmod to compute the probability of a state returning to itself.
+The `"curr_state"` is a build-in function that instructs gmod to compute the probability of a state returning to itself.
 
 Before we can evaluate the model, first we need to pass the parameter values. Here we use the global environment to define those. Later, we show how to pass these as a parameter list `param` which will be helpful for analyses such as probabilistic sensitivity analyses. 
 

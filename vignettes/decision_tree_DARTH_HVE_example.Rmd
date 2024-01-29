@@ -28,24 +28,24 @@ gmod model definition
 p_comp() takes in two arguments, one is the special keyword decision, and the other is a custom one.  This is a good example that custom arguments and values can be passed to define functions for the event_mapping and the payoffs. Thus, the return values can be a function of these arguments and it can reduce the amount of typing required if one choses to define multiple functions. 
 
 ```{r}
-mygmod <- gmod(model_type = "Decision") + 
+mygmod <- gmod() + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
-  event_mapping(event = "DIE",  
-            values = c(T, F), 
+  event(name = "DIE",  
+            results = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Death", "HVE_event")) + 
-  event_mapping(event = "HVE_event",  
-            values = c(T, F), 
+  event(name = "HVE_event",  
+            results = c(T, F), 
             probs = c(p_HVE, Inf), 
             outcomes = c("get_HVE_comp", "get_OVE_comp")) +
-  event_mapping(event = "get_HVE_comp", 
-            values = c(T, F),
+  event(name = "get_HVE_comp", 
+            results = c(T, F),
             probs = c(p_comp(decision, HVE = TRUE), Inf),
             outcomes = c("HVE_comp", "no_HVE_comp"))  +
-  event_mapping(event = "get_OVE_comp", 
-            values = c(T, F),
+  event(name = "get_OVE_comp", 
+            results = c(T, F),
             probs = c(p_comp(decision, HVE = FALSE), Inf),
             outcomes = c("OVE_comp", "no_OVE_comp")) + 
   #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 
