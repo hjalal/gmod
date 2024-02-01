@@ -40,11 +40,11 @@ mygmod <- gmod() +
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states(names = c("H", "S1", "S2", "D"), init_probs = c(1,0,0,0), max_cycle_in_states = c(1,1,1,1)) + 
   event(name = "die",  
-        results = c(T, F), 
+        scenarios = c(T, F), 
         probs = c(pDie(state, cycle, v_r_mort_by_age), Inf), 
         outcomes = c("D", "get_event")) +  
   event(name = "get_event",  
-        results = c("recover", "getsick", "progress", "stay"), 
+        scenarios = c("recover", "getsick", "progress", "stay"), 
         probs = c(pRecover(state), 
                   pGetSick(state), 
                   pProgress(state, decision), 

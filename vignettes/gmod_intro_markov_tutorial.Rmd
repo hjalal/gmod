@@ -35,7 +35,7 @@ mygmod <- gmod() +
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states(names = c("H", "S1", "S2", "D"), init_probs = c(1,0,0,0)) +  
   event(name = "get_event",  
-                results = c("recover", "getsick", "progress", "die", "stay"), 
+                scenarios = c("recover", "getsick", "progress", "die", "stay"), 
                 probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf), 
                 outcomes = c("H", "S1", "S2", "D", "curr_state")) +  
   payoffs(cost = cost(state, decision), 

@@ -53,7 +53,7 @@ gmod <- function() {
 #' Add event mapping
 #'
 #' @param name 
-#' @param results 
+#' @param scenarios 
 #' @param probs 
 #' @param outcomes 
 #'
@@ -61,11 +61,11 @@ gmod <- function() {
 #' @export
 #'
 #' @examples event_mapping(name = "event_progress", 
-#' results = c(TRUE,FALSE), 
+#' scenarios = c(TRUE,FALSE), 
 #' probs = c(p_progress_function(state), Inf), 
 #' outcomes = c("Severe","curr_state")
 #' 
-event <- function(name, results, probs, outcomes){
+event <- function(name, scenarios, probs, outcomes){
   # events are the links that can either go to states or other events
   input_string <- paste0(deparse(substitute(probs)), collapse = "")
   
@@ -76,7 +76,7 @@ event <- function(name, results, probs, outcomes){
   #input_string <- as.list(match.call())$probs
   list(type = "event", 
        event = name, 
-       values = results, 
+       values = scenarios, 
        probs = probs2string(input_string),
        outcomes = outcomes #,
        #payoffs = payoffs_string

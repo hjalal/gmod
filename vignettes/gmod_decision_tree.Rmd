@@ -32,7 +32,7 @@ First, we define the gmod object by defining its layers.
 mygmod <- gmod() + 
   decisions("A", "B") + 
   event(name = "get_infection",  
-        results = c(T, F), 
+        scenarios = c(T, F), 
         probs = c(pSick(decision), Inf), 
         outcomes = c("Sick", "Healthy")) + 
   payoffs(life_expectancy = compute_le(final_outcome))

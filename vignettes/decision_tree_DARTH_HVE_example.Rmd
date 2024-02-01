@@ -33,19 +33,19 @@ mygmod <- gmod() +
   #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
   event(name = "DIE",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Death", "HVE_event")) + 
   event(name = "HVE_event",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(p_HVE, Inf), 
             outcomes = c("get_HVE_comp", "get_OVE_comp")) +
   event(name = "get_HVE_comp", 
-            results = c(T, F),
+            scenarios = c(T, F),
             probs = c(p_comp(decision, HVE = TRUE), Inf),
             outcomes = c("HVE_comp", "no_HVE_comp"))  +
   event(name = "get_OVE_comp", 
-            results = c(T, F),
+            scenarios = c(T, F),
             probs = c(p_comp(decision, HVE = FALSE), Inf),
             outcomes = c("OVE_comp", "no_OVE_comp")) + 
   #payoffs(cost = cost(decision, final_outcome, prop_with_event("HVE"=TRUE, decision)), 

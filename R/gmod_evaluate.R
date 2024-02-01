@@ -25,9 +25,6 @@ gmod_evaluate.gmod_markov <- function(model_struc, model_function_name = "my_mar
   model_lines <- c(model_lines, "list2env(params)")
   model_lines <- c(model_lines, paste0("summary_results <- data.frame(decision=c('", paste0(model_struc$decision, collapse = "','"), "'))"))
   
-  
-  
-  
   # for Markov structure, parse P, p0, Payoffs, event_payoff and replace
   model_num_str <- model_struc
   payoff_names <- model_num_str$payoff_names
@@ -38,8 +35,6 @@ gmod_evaluate.gmod_markov <- function(model_struc, model_function_name = "my_mar
   model_num_str$payoff_eqns <- model_num_str$payoff_eqns %>% 
     dplyr::rowwise() %>% 
     dplyr::mutate(dplyr::across(payoff_names, ~ eval(parse(text = .x))))
-  
-  
   
   decisions <- model_num_struc$decisions
   n_decisions <- model_num_struc$n_decisions

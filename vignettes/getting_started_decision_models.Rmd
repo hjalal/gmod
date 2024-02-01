@@ -68,7 +68,7 @@ We can write this decision problem in `gmod()` as:
 mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "die",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, die))
@@ -150,11 +150,11 @@ my_decision_model()
 mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "get_sick",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(pGetSick(decision), Inf), 
             outcomes = c("die", "die")) + 
   event(name = "die",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(pDie(get_sick), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, get_sick, die))
@@ -194,7 +194,7 @@ params <- list(pDieAmputate = 0.01,
 mygmod <- gmod() + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "die",  
-            results = c(T, F), 
+            scenarios = c(T, F), 
             probs = c(pDie(decision), Inf), 
             outcomes = c("Dead", "Alive")) + 
   payoffs(utility = compute_utility(decision, die))
