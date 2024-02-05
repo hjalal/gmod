@@ -19,7 +19,8 @@ gmod_build <- function(x, ...) UseMethod("gmod_build")
 #' @examples 
 #' print("see vignettes(package = 'gmod')") 
 
-gmod_build.gmod_markov <- function(gmod_obj, n_cycles, params = NULL, simplify = FALSE){
+gmod_build.gmod_markov <- function(gmod_obj, #n_cycles, 
+                                   params = NULL, simplify = FALSE){
   # if (simplify){
   #   if (is.null(params)){
   #     stop("simplify = TRUE. please provide a list of paramters to simplify the generated model structure by removing paths that generate 0 probabilities. Avoid passing probabilities that are either 0 or 1.")
@@ -31,7 +32,7 @@ gmod_build.gmod_markov <- function(gmod_obj, n_cycles, params = NULL, simplify =
   # here we will have an environment to parse the gmod_object
   #n_cycles <- gmod_obj$n_cycles
   model_obj <- list()
-  model_obj$n_cycles <- n_cycles
+  #model_obj$n_cycles <- n_cycles
   model_obj$is_cycle_dep <- is_cycle_dep(gmod_obj)
   
   model_obj <- add_decision_info(gmod_obj, model_obj)

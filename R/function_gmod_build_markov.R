@@ -63,7 +63,7 @@ add_markov_eqns <- function(gmod_obj, model_obj, events_df, simplify = FALSE){
   states_expanded <- model_obj$states_expanded
   n_states_expanded <- length(states_expanded)
   tunnel_states <- model_obj$tunnel_states
-  n_cycles <- gmod_obj$n_cycles
+  #n_cycles <- gmod_obj$n_cycles
   # get expanded states 
 
   # final_outcomes <- model_obj$final_outcomes
@@ -128,12 +128,12 @@ add_tunnels <- function(gmod_obj, model_obj){
   tunnel_layer <- retrieve_layer_by_type(gmod_obj, type = "tunnels")
   states <- tunnel_layer$states
   lengths <- tunnel_layer$lengths
-  if (is.null(lengths)){
-    lengths <- rep(gmod_obj$n_cycles, length(states))
-  } else if(any(is.na(lengths))){
-    na_id <- is.na(lengths)
-    lengths[na_id] <- gmod_obj$n_cycles
-  } 
+  # if (is.null(lengths)){
+  #   lengths <- rep(gmod_obj$n_cycles, length(states))
+  # } else if(any(is.na(lengths))){
+  #   na_id <- is.na(lengths)
+  #   lengths[na_id] <- gmod_obj$n_cycles
+  # } 
   model_obj$tunnel_states <- states
   model_obj$tunnel_lengths <- lengths
   names(model_obj$tunnel_lengths) <- states

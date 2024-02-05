@@ -37,6 +37,7 @@ library(magrittr)
 NEW Syntax using layers = twigs
 
 ```{r}
+n_cycles <- 5
 mygmod <- gmod() + # for illustration it is 75 in the tutorial 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states(names=c("H", "S1", "S2", "D"), 
@@ -64,7 +65,7 @@ The `gmod()` function defines the model type as a Markov model and number of cyc
 
 Since the tutorial assumes that all the events happen simultaneously (i.e., no sequence), we add a single `event_mapping()` layer we model the individual final_outcomes separately.  We can interpret the event_mapping as the following: The event `get_event` can have 5 values: recover, getsick, progress, die, or stay in the same state.  These values will outcome in the following states: H, S1, S2, D and staying in the current state, respectively. The prob argument defines the probability of these final_outcomes.  For example, pRecover() defins the probability of recovering and it is a function of state because this probability is only applied if the state is "S1", and is 0 otherwise. Note here we use `Inf` here is as a placeholder to reduce the amount of typing required. Then, we define the payoffs of cost and utility and define each as a function of the state and the decision taken.
 
-The `cycle_in_S1` is a special keyward that consists of the prefix `cycle_in_` followed by one of the state names.  This keyword tells gmod which state to expand by adding additional tunnel states. You can create other tunnels by adding `cycle_in_[State]`.  Note, adding tunnel states expands the state space and can be computationally expensive. 
+The `cycle_in_state` is a special keyward that consists of the prefix `cycle_in_` followed by one of the state names.  This keyword tells gmod which state to expand by adding additional tunnel states. You can create other tunnels by adding `cycle_in_[State]`.  Note, adding tunnel states expands the state space and can be computationally expensive. 
 
 The `"curr_state"` is a build-in function that instructs gmod to compute the probability of a state returning to itself.
 
@@ -159,7 +160,6 @@ v_r_mort_by_age0 <- lt_usa_2015 %>%
 
 ```{r}
 params <- list(
-  n_cycles = 10, # number of cycles is required for markov models
 ### Transition rates (annual), and hazard ratios (HRs) ----
 r_HS1  = 0.15,  # constant annual rate of becoming Sick when Healthy
 r_S1H  = 0.5 ,  # constant annual rate of becoming Healthy when Sick
@@ -227,21 +227,23 @@ pGetSick <- function(state){
 
 probability of progress is slightly more complex as it is a function of both the state and the decision.  
 ```{r}
-pProgress <- function(state, decision, cycle_in_S1){
+pProgress <- function(state, decision, cycle_in_state){
+
   if (state=="S1"){
-  hr_S1S2 <- if (decision %in% c("StrategyB", "StrategyAB")) hr_S1S2_trtB else 1
-  
-  r_S1S2_tunnels <- (cycle_in_S1*r_S1S2_scale)^r_S1S2_shape - 
-                    ((cycle_in_S1 - 1)*r_S1S2_scale)^r_S1S2_shape
-  
-  p_S1S2_tunnels <- rate2prob(r_S1S2_tunnels)
-     
-  rProgress <- (state=="S1") * r_S1S2_tunnels * hr_S1S2
-  
-  rate2prob(rProgress)
+    hr_S1S2 <- if (decision %in% c("StrategyB", "StrategyAB")) hr_S1S2_trtB else 1
+    
+    r_S1S2_tunnels <- (cycle_in_state*r_S1S2_scale)^r_S1S2_shape - 
+                      ((cycle_in_state - 1)*r_S1S2_scale)^r_S1S2_shape
+    
+    #p_S1S2_tunnels <- rate2prob(r_S1S2_tunnels)
+    #rProgress <- (state=="S1") * r_S1S2_tunnels * hr_S1S2
+    rProgress <- r_S1S2_tunnels * hr_S1S2
+    
+    rate2prob(rProgress)
   } else {
     0
   }
+  
 }
 ```
 hr_S1S2 is a function of the decision if it contains "B" then it is hr_S1S2_trtB otherwise is 1.  then the rate of progression is only conditional on state being S1 which gets multiplied by the r_S1S2 and the hr_S1S2.
@@ -309,14 +311,17 @@ utility <- function(state, decision, get_event){
 }
 ```
 
+
+
+
+
 Then, we build the gmod Markov model by using the `gmod_build()` function.
 
 The output is the structure of the model including the formulae.  
 
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical outcomes. 
 ```{r}
-n_cycles <- 10
-model_struc <- gmod_gen_model_function(mygmod, n_cycles)
+model_struc <- gmod_gen_model_function(mygmod)
 #model_res
 ```
 
@@ -326,7 +331,15 @@ model_struc <- gmod_gen_model_function(mygmod, n_cycles)
 model_results <- my_markov_model(model_struc, params, return_trace = T)
 dim(model_results$Trace)
 model_results
+
 ```
+
+
+create datasets for the expanded variables
+```{r}
+gmod_expand_functions(mygmod)
+```
+
 
 ## simplified version 
 removes probability paths that are 0, and simplifies those that are 1.

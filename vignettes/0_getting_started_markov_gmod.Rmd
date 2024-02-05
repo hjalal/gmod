@@ -17,6 +17,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+![](fig1_decision_twigs.png){width="1000"}
+
 The purpose of this vignette is to demonstrate how gmod can be used to build common features of a Markov model. For decision modeling, please check the getting started with decision modeling vignette.
 
 For a graphical interface to build the gmod syntax, please check <https://www.dashlab.ca/decision_twigs.html>.
@@ -72,15 +74,13 @@ mygmod <- gmod() +
   decisions("StandardOfCare", "StrategyA") + 
   states(names = c("H", "S", "D"), init_probs = c(1,0,0)) + 
   event(name = "only_event",  
-              scenarios = c("get_sick", "die", "stay"), 
-              probs = c(pGetSick(state), pDie(decision, state), Inf), 
-              outcomes = c("S", "D", "curr_state")) +  
+        scenarios = c("get_sick", "die", "stay"), 
+        probs = c(pGetSick(state), pDie(decision, state), Inf), 
+        outcomes = c("S", "D", "curr_state")) +  
   payoffs(cost = compute_cost(decision, state))
 ```
 
 To have a graphical representation, we can copy this code into Decision Twigs to generate the twigs:
-
-![](fig1_decision_twigs.png){width="1000"}
 
 Here are the explanation of what each twig does:
 
@@ -126,6 +126,13 @@ compute_cost calculates the cost of the disease by combining the cost of the sta
 
 As your functions get more complex, we recommended that you test them to make sure they return outcomes for all possible combinations of states and decisions and other input arguments. For example, the simple code below tests the functions for all possible combinations of decisions and states.
 
+Evaluate the functions 
+```{r}
+gmod_expand_functions(mygmod)
+head(df_pDie)
+```
+
+
 ```{r}
 for (decision in c("StandardOfCare", "StrategyA")){
   for (state in c("H", "S", "D")){
@@ -145,7 +152,7 @@ Now we have all the ingredients to run the model.
 First, we need to generate the model function code
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 ```
 
 This will create the `model_struc` which contains the model equations and formulae and can be examined, and as stated in the generated note, this function also produces a function representation of the Markov model. The default name of this function is `my_markov_model.`
@@ -173,6 +180,7 @@ The generated code is build on our introductory and advanced Markov tutorials in
 Now, let's run the model function and generate our summary results of running the model for 5 cycles and computing the cumulative cost for our cohort.
 
 ```{r}
+n_cycles <- 10
 my_markov_model(model_struc)
 ```
 
@@ -230,7 +238,7 @@ mygmod <- gmod() +
   payoffs(cost = compute_cost(decision, state))
   
 # creating the updated function and evaluating it
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 model_results <- my_markov_model(model_struc, return_trace = T)
 model_results$Trace
 
@@ -262,7 +270,7 @@ compute_effectiveness <- function(state){
 }
 
 # creating the updated function and evaluating it
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 # we look at the cycle payoffs which apply the discounts to the cycle payoffs.
 my_markov_model(model_struc, return_cycle_payoffs=TRUE)
 ```
@@ -299,7 +307,7 @@ compute_cost <- function(decision, state, cycle){
   cost_state+cost_decision
 }
 
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 ```
 
 Of course, we only need to add the variable cycle to the function definitions `pDie` and `compute_cost` and also remember to add them to the function calls in the `gmod` function. For illustration we assume that `pDie` and the `cost` of the states both increased as a linear function of the Markov cycles, 1X, 2X, ..., 5X for cycles 1 through 5, respectively. Let's check first to see that our functions are correct, and then we will run the model and inspect the outputs.
@@ -319,7 +327,7 @@ for (decision in c("StandardOfCare", "StrategyA")){
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 my_markov_model(model_struc)
 ```
 
@@ -355,7 +363,7 @@ compute_cost <- function(decision, state, cycle_in_state){ #
   cost_state+cost_decision
 }
 
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 ```
 
 It is quite simple to add tunnel dependency by adding the `cycle_in_state` variable.
@@ -382,7 +390,7 @@ for (decision in c("StandardOfCare", "StrategyA")){
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 model_results <- my_markov_model(model_struc, return_transition_prob = T, return_state_payoffs = T)
 ```
 
@@ -434,7 +442,7 @@ compute_cost <- function(state){
   cost_state
 }
 
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 my_markov_model(model_struc,return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
 
 ```
@@ -495,7 +503,7 @@ The rest of the user-functions can stay the same. Below we show how to use prior
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 my_markov_model(model_struc,return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
 
 ```
@@ -536,7 +544,7 @@ compute_cost <- function(state, get_sick){
   cost_state+cost_get_sick
 }
 
-model_struc <- gmod_gen_model_function(mygmod, n_cycles = 5)
+model_struc <- gmod_gen_model_function(mygmod)
 my_markov_model(model_struc,params=params)
 
 ```

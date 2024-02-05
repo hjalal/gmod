@@ -20,8 +20,9 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
 
-gmod_gen_model_function.gmod_markov <- function(mygmod, n_cycles, model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
-  model_struc <- gmod_build(mygmod, n_cycles) 
+gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles, 
+                                                model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
+  model_struc <- gmod_build(mygmod) #, n_cycles) 
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   
@@ -35,9 +36,12 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, n_cycles, model_function
   decisions <- model_struc$decisions
   model_lines <- c(model_lines, paste0("decisions <- model_struc$decisions"))
   model_lines <- c(model_lines, paste0("tunnel_lengths <- model_struc$tunnel_lengths"))
+  # replace tunnels that are infinite with the number of cycles
+  model_lines <- c(model_lines, paste0("tunnel_lengths[is.infinite(tunnel_lengths)] <- n_cycles"))
   
   model_lines <- c(model_lines, "n_decisions <- model_struc$n_decisions")
-  model_lines <- c(model_lines, "n_cycles <- model_struc$n_cycles")
+  #n_cycles must be passed as a parameter
+  #model_lines <- c(model_lines, "n_cycles <- model_struc$n_cycles")
   model_lines <- c(model_lines, "cycles <- 1:n_cycles")
   states <- model_struc$states
   n_states <- model_struc$n_states

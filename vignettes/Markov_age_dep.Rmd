@@ -38,10 +38,11 @@ Define the model structure.  Note that the model is structured in a way that the
 ```{r}
 mygmod <- gmod() + 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
-  states(names = c("H", "S1", "S2", "D"), init_probs = c(1,0,0,0), max_cycle_in_states = c(1,1,1,1)) + 
+  states(names = c("H", "S1", "S2", "D"), 
+         init_probs = c(1,0,0,0)) + 
   event(name = "die",  
         scenarios = c(T, F), 
-        probs = c(pDie(state, cycle, v_r_mort_by_age), Inf), 
+        probs = c(pDie(state, cycle), Inf), 
         outcomes = c("D", "get_event")) +  
   event(name = "get_event",  
         scenarios = c("recover", "getsick", "progress", "stay"), 
@@ -161,7 +162,7 @@ if (state=="S1") TRUE else FALSE
 
 Probability of death is a function of the state. For states S1 and S2 the rate of mortality is relative to the healthy rate multiplied by a hazard ratio for each state.
 ```{r}
-pDie <- function(state, cycle, v_r_mort_by_age){
+pDie <- function(state, cycle){
   r_HD <- v_r_mort_by_age[cycle]
   rDie <- switch(state, 
          "H" = r_HD,
@@ -216,6 +217,7 @@ utility <- function(state, decision, get_event){
 The output is the structure of the model including the formulae using `gmod_gen_model_function()` and then calling the generated function `my_markov_model()`.  
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical outcomes. 
 ```{r}
+n_cycles <- 10
 model_struc <- gmod_gen_model_function(mygmod)
 model_res <- my_markov_model(model_struc, return_trace = T)
 #model_res
