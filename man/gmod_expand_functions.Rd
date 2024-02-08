@@ -4,7 +4,7 @@
 \alias{gmod_expand_functions}
 \title{Title}
 \usage{
-gmod_expand_functions(gmod_obj, fun_names, excel_file_name = NULL)
+gmod_expand_functions(gmod_obj, fun_names = NULL, excel_file_name = NULL)
 }
 \arguments{
 \item{gmod_obj}{}

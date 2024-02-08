@@ -45,7 +45,7 @@ mygmod <- gmod() + # for illustration it is 75 in the tutorial
          max_cycle_in_states=c(1,n_cycles,1,1)) + 
   event(name = "die",  
         scenarios = c(T, F), 
-        probs = c(pDie(state, cycle, cycle_in_state), Inf), 
+        probs = c(pDie(state, cycle), Inf), 
         outcomes = c("D", "get_event")) +  
   event(name = "get_event",  
         scenarios = c("recover", "getsick", "progress", "stay"), 
@@ -206,8 +206,11 @@ The model has six user-defined functions: four for computing probabilities `pRec
 probability of recover is only dependent on state being S1 otherwise is 0.  Following the tutorial, we convert the rate of recover r_S1H to a probability by using the function rate2prob().
 ```{r}
 pRecover <- function(state){
-  rRecover <- if (state=="S1") r_S1H else 0
-  rate2prob(rRecover)
+  # rRecover <- if (state=="S1") r_S1H else 0
+  # rate2prob(rRecover)
+  # ifelse(state=="S1", r_S1H, 0) %>% 
+  #   rate2prob()
+  r_S1H*(state=="S1") %>% rate2prob()
 }
 ```
 This is a standard function and can be evaluated like any other function.  For example, we can type
@@ -220,31 +223,51 @@ This is a standard function and can be evaluated like any other function.  For e
 probability of getting sick is also a function of a single state "H" otherwise is 0.
 ```{r}
 pGetSick <- function(state){
-  rGetSick <- if (state=="H") r_HS1 else 0
-  rate2prob(rGetSick)
+  # ifelse(state=="H", r_HS1, 0) %>% 
+  #   rate2prob()
+  r_HS1*(state=="H") %>% rate2prob()
+  # rGetSick <- if (state=="H") r_HS1 else 0
+  # rate2prob(rGetSick)
 }
 ```
 
 probability of progress is slightly more complex as it is a function of both the state and the decision.  
 ```{r}
+# Function for change in cumulative hazard of a weibull (See advanced Markov tutorial)
+delta_cum_hazard_weibull <- function(cycle_in_state){
+  (cycle_in_state*r_S1S2_scale)^r_S1S2_shape - ((cycle_in_state - 1)*r_S1S2_scale)^r_S1S2_shape
+}
+
+
 pProgress <- function(state, decision, cycle_in_state){
 
-  if (state=="S1"){
-    hr_S1S2 <- if (decision %in% c("StrategyB", "StrategyAB")) hr_S1S2_trtB else 1
-    
-    r_S1S2_tunnels <- (cycle_in_state*r_S1S2_scale)^r_S1S2_shape - 
-                      ((cycle_in_state - 1)*r_S1S2_scale)^r_S1S2_shape
-    
-    #p_S1S2_tunnels <- rate2prob(r_S1S2_tunnels)
-    #rProgress <- (state=="S1") * r_S1S2_tunnels * hr_S1S2
-    rProgress <- r_S1S2_tunnels * hr_S1S2
-    
-    rate2prob(rProgress)
-  } else {
-    0
-  }
+  # if (state=="S1"){
+  #   hr_S1S2 <- if (decision %in% c("StrategyB", "StrategyAB")) hr_S1S2_trtB else 1
+  #   
+  #   r_S1S2_tunnels <- (cycle_in_state*r_S1S2_scale)^r_S1S2_shape - 
+  #                     ((cycle_in_state - 1)*r_S1S2_scale)^r_S1S2_shape
+  #   
+  #   #p_S1S2_tunnels <- rate2prob(r_S1S2_tunnels)
+  #   #rProgress <- (state=="S1") * r_S1S2_tunnels * hr_S1S2
+  #   rProgress <- r_S1S2_tunnels * hr_S1S2
+  #   
+  #   rate2prob(rProgress)
+  # } else {
+  #   0
+  # }
+  delta_cum_hazard_weibull(cycle_in_state)^(state=="S1") * 
+    hr_S1S2_trtB^(decision %in% c("StrategyB", "StrategyAB")) %>%
+    rate2prob()
   
+  # OR
+  # ifelse(state=="S1",1,0)*
+  #   ifelse(decision %in% c("StrategyB", "StrategyAB"), hr_S1S2_trtB, 1)*
+  #   delta_cum_hazard_weibull(cycle_in_state) %>%
+  #   rate2prob()
 }
+
+
+
 ```
 hr_S1S2 is a function of the decision if it contains "B" then it is hr_S1S2_trtB otherwise is 1.  then the rate of progression is only conditional on state being S1 which gets multiplied by the r_S1S2 and the hr_S1S2.
 
@@ -252,62 +275,105 @@ Using expressions such as (state=="S1") are very helpful as they can reduce the 
 
 ```{r}
 state <- "S1"
-# these two statements are equivalent and both return TRUE:
+# these three statements are equivalent and both return TRUE:
 (state=="S1")
 if (state=="S1") TRUE else FALSE
+ifelse(state=="S1",TRUE,FALSE)
 
 ```
 
 Probability of death is a function of the state. For states S1 and S2 the rate of mortality is relative to the healthy rate multiplied by a hazard ratio for each state.
 ```{r}
-pDie <- function(state, cycle, cycle_in_state){
-  r_HD <- v_r_mort_by_age[cycle]
-  rDie <- switch(state, 
-         "H" = r_HD,
-         "S1" = r_HD*hr_S1,
-         "S2" = r_HD*hr_S2,
-         "D" = Inf) #translates to probability of 1
-  rate2prob(rDie)
+pDie <- function(state, cycle){
+  # r_HD <- v_r_mort_by_age[cycle]
+  # rDie <- switch(state, 
+  #        "H" = r_HD,
+  #        "S1" = r_HD*hr_S1,
+  #        "S2" = r_HD*hr_S2,
+  #        "D" = Inf) #translates to probability of 1
+  # rate2prob(rDie)
+  
+  # OR:
+  # ifelse(state=="D", 0, v_r_mort_by_age[cycle]) * # if already dead 0 otherwise base mortality
+  #   ifelse(state=="S1", hr_S1, 1) * # S1 has an relative risk of 3
+  #   ifelse(state=="S2", hr_S2, 1) %>% # S2 has an relative risk of 10
+  #   rate2prob()
+  
+  # OR:
+  v_r_mort_by_age[cycle]*(state!="D") * # background mortality if not "D" multiplied by 
+    hr_S1^(state=="S1") * # hazard ratio of S1 if S1 *, or 
+    hr_S2^(state=="S2") %>% # hazard ratio of S2 if S2
+    rate2prob()
+  
 }
 ```
 
 The payoffs are a cost and utility function. Both are dependent on both the state and the decision. For example only those in S1 and S2 receive treatment.
 ```{r}
 cost <- function(state, decision, get_event, die){
-  # cost of decision is only applied if the state is either S1 or S2
-  trans_cost_getting_sick <- (get_event=="getsick")*ic_HS1 # increase in cost when transitioning from Healthy to Sick
-  trans_cost_dying <- (die==TRUE)*ic_D # increase in cost when dying
 
-  if (state %in% c("S1","S2")){
-    c_decision <- switch(decision,
-                        "StandardOfCare" = 0,
-                        "StrategyA" = c_trtA ,
-                        "StrategyB" = c_trtB,
-                        "StrategyAB" = c_trtA + c_trtB)}
-  else {
-    c_decision <- 0
-  }
-  # cost of the state is a function of the state
-  c_state <- switch(state, 
-         "H" = c_H,
-         "S1" = c_S1,
-         "S2" = c_S2,
-         "D" = c_D)
-  # combine both
-  return(c_decision + c_state + trans_cost_getting_sick + trans_cost_dying)
+  # if (state %in% c("S1","S2")){
+  #   c_decision <- switch(decision,
+  #                       "StandardOfCare" = 0,
+  #                       "StrategyA" = c_trtA ,
+  #                       "StrategyB" = c_trtB,
+  #                       "StrategyAB" = c_trtA + c_trtB)}
+  # else {
+  #   c_decision <- 0
+  # }
+      # cost of decision is only applied if the state is either S1 or S2
+
+  # c_decision <- 
+  #   ifelse(state %in% c("S1","S2") & decision %in% c("StrategyA","StrategyAB"), c_trtA, 0) + 
+  #   ifelse(state %in% c("S1","S2") & decision %in% c("StrategyB","StrategyAB"), c_trtB, 0)
+  # 
+  # 
+  #   
+  # # cost of the state is a function of the state
+  # c_state <- switch(state, 
+  #        "H" = c_H,
+  #        "S1" = c_S1,
+  #        "S2" = c_S2,
+  #        "D" = c_D)
+  # 
+  # trans_cost_getting_sick <- ifelse(get_event=="getsick",ic_HS1,0) # increase in cost when transitioning from Healthy to Sick
+  # trans_cost_dying <- ifelse(die==TRUE,ic_D,0) # increase in cost when dying
+  # 
+  # # combine all
+  # return(c_decision + c_state + trans_cost_getting_sick + trans_cost_dying)
+  
+#OR: 
+  c_trtA * (state %in% c("S1","S2") & decision %in% c("StrategyA","StrategyAB")) + 
+    c_trtB * (state %in% c("S1","S2") & decision %in% c("StrategyB","StrategyAB")) + 
+    c_H * (state == "H") + 
+    c_S1 * (state == "S1") + 
+    c_S2 * (state == "S2") + 
+    c_D * (state == "D") + 
+    ic_HS1 * (get_event=="getsick") + 
+    ic_D * (die==TRUE)
+                
 }
 ```
 
 Similarly the utility function is a function of the state and decision. For H, S2 and D, the utility is independent of the decision. But, Strategies involving "A" improve the utility of S1 from u_S1 to u_trtA. One way to code this is:
 ```{r}
 utility <- function(state, decision, get_event){
-  trans_util_getting_sick <- -du_HS1*(get_event=="getsick")
-  u_state <- switch(state, 
-         "H" = u_H,
-         "S1" = if (decision %in% c("StrategyA", "StrategyAB")) u_trtA else u_S1,
-         "S2" = u_S2,
-         "D" = u_D)
-  return(u_state + trans_util_getting_sick)
+  # disutility of getsick event
+  # trans_util_getting_sick <- ifelse(get_event=="getsick", -du_HS1, 0)
+  # u_state <- switch(state, 
+  #        "H" = u_H,
+  #        "S1" = ifelse(decision %in% c("StrategyA", "StrategyAB"), u_trtA, u_S1),
+  #        "S2" = u_S2,
+  #        "D" = u_D)
+  # return(u_state + trans_util_getting_sick)
+  
+  # OR: 
+  u_H * (state == "H") + 
+    u_S1*(state=="S1" & decision %not_in% c("StrategyA", "StrategyAB")) + 
+    u_trtA*(state=="S1" & decision %in% c("StrategyA", "StrategyAB")) + 
+    u_S2 * (state=="uS2") + 
+    u_D * (state == "D") + 
+    -du_HS1 * (get_event=="getsick")
 }
 ```
 
@@ -328,7 +394,7 @@ model_struc <- gmod_gen_model_function(mygmod)
 ```{r}
 #source("../R/myfun.R")
 
-model_results <- my_markov_model(model_struc, params, return_trace = T)
+model_results <- my_markov_model(model_struc, params, return_trace = T, return_transition_prob=T)
 dim(model_results$Trace)
 model_results
 
@@ -337,7 +403,9 @@ model_results
 
 create datasets for the expanded variables
 ```{r}
-gmod_expand_functions(mygmod)
+gmod_expand_functions(mygmod, excel_file_name = "expanded_functions.xlsx")
+df_pDie
+
 ```
 
 

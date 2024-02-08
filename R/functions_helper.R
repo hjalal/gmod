@@ -212,3 +212,18 @@ rate2prob <- function(rate){
 prob2rate <- function(prob){
   -log(1-prob)
 }
+
+
+#' Title
+#'
+#' @param x 
+#' @param y 
+#'
+#' @return TRUE if x is not in y, otherwise false
+#' @export
+#'
+#' @examples
+#' 1 %not_in% 
+`%not_in%` <- function(x, y) {
+  !(x %in% y)
+}

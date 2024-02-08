@@ -111,23 +111,45 @@ mygmod <- gmod() +
                 scenarios = c(T, F), 
                 probs = c(pEvent(HSE, decision, BiopRes, pModHSE, pModNoHSE, fMod, addProbMod), Inf), 
                 outcomes = c("MODSEQHSE", "MLDSEQHSE")) + 
-  payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))
+  #payoffs(util = util(decision, final_outcome, sevBiopSeq, modBiopSeq))
+  payoffs(util = util1(final_outcome)*util2(decision, sevBiopSeq, modBiopSeq))
 
 ```
 
 
 ```{r}
 pEvent <- function(HSE, decision, BiopRes, pEventHSE, pEventNoHSE, fEvent, addProbEvent){
-  pEventRx <- if (HSE){
-              (1-fEvent)*pEventHSE 
-              } else {
-                pEventNoHSE+addProbEvent-pEventNoHSE*addProbEvent
-              }
-  pEventNoRx <- if (HSE) pEventHSE else pEventNoHSE
-  if (decision=="NoBiopsy_NoTreat") pEventNoRx else 
-    if (decision=="NoBiopsy_Treat") pEventRx else 
-      if (decision=="BrainBiopsy") 
-        if (BiopRes) pEventRx else pEventNoRx
+  # pEventRx <- if (HSE){
+  #             (1-fEvent)*pEventHSE
+  #             } else {
+  #               pEventNoHSE+addProbEvent-pEventNoHSE*addProbEvent
+  #             }
+  # pEventNoRx <- if (HSE) pEventHSE else pEventNoHSE
+  # 
+  # if (decision=="NoBiopsy_NoTreat") pEventNoRx else
+  #   if (decision=="NoBiopsy_Treat") pEventRx else
+  #     if (decision=="BrainBiopsy")
+  #       if (BiopRes) pEventRx else pEventNoRx
+
+  # (1-fEvent)*pEventHSE * (HSE & (decision=="NoBiopsy_Treat" | (decision=="BrainBiopsy" & BiopRes))) +
+  # (pEventNoHSE+addProbEvent-pEventNoHSE*addProbEvent) * ((!HSE) & (decision=="NoBiopsy_Treat" | (decision=="BrainBiopsy" & BiopRes))) +
+  # pEventHSE * (HSE & (decision=="NoBiopsy_NoTreat" | (decision=="BrainBiopsy" & !BiopRes))) +
+  # pEventNoHSE * ((!HSE) & (decision=="NoBiopsy_NoTreat" | (decision=="BrainBiopsy" & !BiopRes)))
+
+  # 
+# (decision=="NoBiopsy_Treat" | (decision=="BrainBiopsy" & BiopRes)) * (
+#   (HSE) * (1-fEvent) + 
+#   (!HSE) * (pEventNoHSE+addProbEvent-pEventNoHSE*addProbEvent)
+# )
+#   
+  
+  # if they have HSE and receive treatment
+pEventHSE * (HSE) * 
+  (1-fEvent)^(decision=="NoBiopsy_Treat" | (decision=="BrainBiopsy" & BiopRes)) + 
+  # if they don't have HSE and receive treatment
+  pEventNoHSE * (!HSE) * 
+    (1+addProbEvent*(1/pEventNoHSE-1))^(decision=="NoBiopsy_Treat" | (decision=="BrainBiopsy" & BiopRes))
+  
 }
 ```
 
@@ -139,42 +161,80 @@ pBiopsy <- function(decision){
 
 ```{r}
 pBiopRes <- function(HSE){
-  HSE*sensBiopsy + (!HSE)*(1-specBiopsy)
+  sensBiopsy*HSE + 
+    (1-specBiopsy)*(!HSE)
 }
 
 ```
 
 ```{r}
-util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
-  if (decision=="BrainBiopsy"){
-    if (!is.na(sevBiopSeq) & sevBiopSeq){
-      uMult <- uSev
-    } else {
-      if (!is.na(modBiopSeq) & modBiopSeq){
-        uMult <- uMod
-      } else {
-        uMult <- uMld
-      }
-    }
-  } else {
-    uMult <- 1
-  }
-  # uMult <- (decision=="BrainBiopsy")*(sevBiopSeq*uSev + modBiopSeq*uMod + (!modBiopSeq)*uMld) + 
-  #   (decision!="BrainBiopsy")
-  #print(uMult)
-  switch(final_outcome,
-         "DEAD" = uDie,
-         "SEVSEQHSE" = uSev*uMult, 
-         "MODSEQHSE" = uMod*uMult, 
-         "MLDSEQHSE" = uMld*uMult)
+util1 <- function(final_outcome){
+    ( #utility of the final outcome
+    uDie * (final_outcome == "DEAD") +
+    uSev * (final_outcome == "SEVSEQHSE") +
+    uMod * (final_outcome == "MODSEQHSE") +
+    uMld * (final_outcome == "MLDSEQHSE")
+    ) 
+
 }
+util2 <- function(decision, sevBiopSeq, modBiopSeq){
+ ( # multiplied by the utility of biopsy complications
+    uSev * sevBiopSeq + 
+    uMod * (!sevBiopSeq & modBiopSeq) +
+    uMld * (!sevBiopSeq & !modBiopSeq)
+    ) ^ (decision=="BrainBiopsy") # since this is a multiplier use exponent ^
+
+}
+
+util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
+  # if (decision=="BrainBiopsy"){
+  #   #if (!is.na(sevBiopSeq) & sevBiopSeq){
+  #   if (sevBiopSeq){
+  #     uMult <- uSev
+  #   } else {
+  #     #if (!is.na(modBiopSeq) & modBiopSeq){
+  #     if (modBiopSeq){
+  #       uMult <- uMod
+  #     } else {
+  #       uMult <- uMld
+  #     }
+  #   }
+  # } else {
+  #   uMult <- 1
+  # }
+  # 
+  # switch(final_outcome,
+  #        "DEAD" = uDie,
+  #        "SEVSEQHSE" = uSev*uMult,
+  #        "MODSEQHSE" = uMod*uMult,
+  #        "MLDSEQHSE" = uMld*uMult)
+
+    ( #utility of the final outcome
+    uDie * (final_outcome == "DEAD") +
+    uSev * (final_outcome == "SEVSEQHSE") +
+    uMod * (final_outcome == "MODSEQHSE") +
+    uMld * (final_outcome == "MLDSEQHSE")
+    ) * ( # multiplied by the utility of biopsy complications
+    uSev * sevBiopSeq + 
+    uMod * (!sevBiopSeq & modBiopSeq) +
+    uMld * (!sevBiopSeq & !modBiopSeq)
+    ) ^ (decision=="BrainBiopsy") # since this is a multiplier use exponent ^
+
+}
+
 ```
 
 
 ```{r}
 model_struc <- gmod_build(mygmod)
+#View(model_struc$final_outcome_formulae)
 model_struc
 ```
+
+```{r}
+#gmod_expand_functions(mygmod)
+```
+
 
 
 ```{r}

@@ -91,21 +91,30 @@ params <- list(
 define custom user functions
 ```{r}
 pDie <- function(decision){
-  if (decision == "Biopsy") p_biopsy_death else 0
+  #if (decision == "Biopsy") p_biopsy_death else 0
+  p_biopsy_death*(decision == "Biopsy")
 }
 
 p_comp <- function(decision, HVE){
-  if (decision == "DoNotTreat" & HVE ) return(p_HVE_comp)
-  if (decision == "DoNotTreat" & !HVE )return(p_OVE_comp)
-  if (decision == "Treat" & HVE ) return(p_HVE_comp_tx)
-  if (decision == "Treat" & !HVE ) return(p_OVE_comp_tx)
-  if (decision == "Biopsy" & HVE) return(p_HVE_comp_tx)
-  if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
+  # if (decision == "DoNotTreat" & HVE ) return(p_HVE_comp)
+  # if (decision == "DoNotTreat" & !HVE )return(p_OVE_comp)
+  # if (decision == "Treat" & HVE ) return(p_HVE_comp_tx)
+  # if (decision == "Treat" & !HVE ) return(p_OVE_comp_tx)
+  # if (decision == "Biopsy" & HVE) return(p_HVE_comp_tx)
+  # if (decision == "Biopsy" & !HVE) return(p_OVE_comp)
+  # 
+  p_HVE_comp*(decision == "DoNotTreat" & HVE ) + 
+    p_OVE_comp*((decision == "DoNotTreat" | decision == "Biopsy") & !HVE ) + 
+    p_HVE_comp_tx*((decision == "Treat" | decision == "Biopsy") & HVE ) + 
+    p_OVE_comp_tx*(decision == "Treat" & !HVE ) 
+    
+  
 }
 
-c_HVE <- function(decision){
-  if (decision == "biopsy") c_tx else 0
-}
+# c_HVE <- function(decision){
+#   #if (decision == "biopsy") c_tx else 0
+#   c_tx*(decision == "biopsy")
+# }
 
 cost <- function(decision, final_outcome){ 
   c_biopsy*(decision=="Biopsy") + 
