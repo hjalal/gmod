@@ -2,15 +2,15 @@
 title: "Introduction to Markov modeling"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to Markov modeling}
+%\VignetteIndexEntry{Introduction to Markov modeling}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
----
-
-```{r, include = FALSE}
+  ---
+  
+  ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+collapse = TRUE,
+comment = "#>"
 )
 ```
 
@@ -35,12 +35,59 @@ mygmod <- gmod() +
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states(names = c("H", "S1", "S2", "D"), init_probs = c(1,0,0,0)) +  
   event(name = "get_event",  
-                scenarios = c("recover", "getsick", "progress", "die", "stay"), 
-                probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf), 
-                outcomes = c("H", "S1", "S2", "D", "curr_state")) +  
+        scenarios = c("recover", "getsick", "progress", "die", "stay"), 
+        probs = c(pRecover(state), pGetSick(state), pProgress(state, decision), pDie(state), Inf), 
+        outcomes = c("H", "S1", "S2", "D", "curr_state")) +  
   payoffs(cost = cost(state, decision), 
           utility = utility(state, decision),
-          discount_rates = c(0.03, 0.03))
+          discount_rates = c(0.03, 0.03)) + 
+  rootlet(pRecover=choose(c(r_S1H, 0), 
+                          when=c(state=="S1", Inf)),  
+          transformation =rate2prob) + 
+  rootlet(pGetSick=if(state=="H"){r_HS1}else{0}, transformation=rate2prob) + 
+  rootlet(name=pProgress,
+          formula=choose(r_S1S2 * state=="S1"))
+  rootlet(pProgress=if(state=="S1"){r_S1S2}else{0}*
+            if(decision%in%c("StrategyB","StrategyAB")){hr_S1S2_trtB}else{1}, 
+          pProgress=aggregate(choose(c(r_S1S2, 0), 
+                                     when=c(state=="S1", Inf)), 
+                              choose(c(hr_S1S2_trtB, 1), 
+                                     when=c(decision%in%c("StrategyB","StrategyAB"), Inf)), 
+                              fun = prod), 
+          transformation=rate2prob) + 
+  rootlet(pDie=if(state=="D"){0}else{r_HD}*
+            if(state=="S1"){hr_S1}
+          else if(state=="S2"){hr_S2}
+          else {1},
+          name = pDie,
+          formula=aggregate(r_HD := state!="D",
+                            hr_S1 := state=="S1",
+                            hr_S2 := state=="S2", 
+                            fun = prod), 
+          transformation=rate2prob) + 
+    
+  rootlet(name = cost, 
+          formula=SUM_IF(c_trtA, state %in% c("S1","S2") & decision %in% c("StrategyA","StrategyAB"),
+                         c_trtB, state %in% c("S1","S2") & decision %in% c("StrategyB","StrategyAB"),
+                         c_H, state=="H",
+                         C_S1, state=="S1",
+                         C_S2, state=="S2",
+                         c_D, state=="D"), 
+          name = cost, 
+          formula=aggregate(c_trtA * (state %in% c("S1","S2") & decision %in% c("StrategyA","StrategyAB")),
+                         c_trtB * (state %in% c("S1","S2") & decision %in% c("StrategyB","StrategyAB")),
+                         c_H * state=="H",
+                         c_S1 * state=="S1",
+                         c_S2 * state=="S2",
+                         c_D * state=="D"), 
+                         fun = sum),
+
+          default = 0,
+          transformation = rate2prob)
+
+rootlet(utility=)
+
+
 ```
 
 The `gmod()` function defines the model type as a Markov model and number of cycles as 75. The `decision()` function defines the treatment strategies.  The `initial_probs()` defines the initial probabilities. Here we only define the "Moderate" states as the starting state with probability equals 1. The other states will be set to 0. 
@@ -52,26 +99,26 @@ The `"curr_state"` is a build-in function that instructs gmod to compute the pro
 Before we can evaluate the model, first we need to pass the parameter values. Here we use the global environment to define those. Later, we show how to pass these as a parameter list `param` which will be helpful for analyses such as probabilitistic sensitivity analyses. 
 ```{r}
 params <- list(
-          r_HD = 0.002,
-          r_HS1 = 0.15,
-          r_S1H = 0.5,
-          r_S1S2 = 0.105,
-          hr_S1 = 3,
-          hr_S2 = 10,
-          hr_S1S2_trtB = 0.6,
-          
-          c_H = 2000,
-          c_S1 = 4000,
-          c_S2 = 15000,
-          c_D = 0,
-          c_trtA = 12000,
-          c_trtB = 13000,
-          
-          u_H = 1,
-          u_S1 = 0.75,
-          u_S2 = 0.5,
-          u_D = 0,
-          u_trtA = 0.95
+  r_HD = 0.002,
+  r_HS1 = 0.15,
+  r_S1H = 0.5,
+  r_S1S2 = 0.105,
+  hr_S1 = 3,
+  hr_S2 = 10,
+  hr_S1S2_trtB = 0.6,
+  
+  c_H = 2000,
+  c_S1 = 4000,
+  c_S2 = 15000,
+  c_D = 0,
+  c_trtA = 12000,
+  c_trtB = 13000,
+  
+  u_H = 1,
+  u_S1 = 0.75,
+  u_S2 = 0.5,
+  u_D = 0,
+  u_trtA = 0.95
 )
 ```
 
@@ -105,7 +152,7 @@ probability of progress is slightly more complex as it is a function of both the
 pProgress <- function(state, decision){
   r_S1S2 * (state=="S1") * # progress only in S1
     hr_S1S2_trtB ^ (decision %in% c("StrategyB", "StrategyAB")) %>% # hazard ratio if deicsion has B in it
-  rate2prob(rProgress)
+    rate2prob(rProgress)
 }
 ```
 hr_S1S2 is a function of the decision if it contains "B" then it is hr_S1S2_trtB otherwise is 1.  then the rate of progression is only conditional on state being S1 which gets multiplied by the r_S1S2 and the hr_S1S2.
@@ -165,7 +212,7 @@ cost <- function(state, decision){
     c_S1 * (state == "S1") + 
     c_S2 * (state == "S2") + 
     c_D * (state == "D")
-    
+  
 }
 ```
 
