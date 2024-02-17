@@ -2,7 +2,7 @@
 title: "Markov Tutorial Age Dependent"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Markov Tutorial Age Dependent}
+  %\VignetteIndexEntry{M3 Markov Tutorial Age Dependent}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -2,7 +2,7 @@
 title: "Advanced Markov Tutorial for Time Dependent Markov Model"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Advanced Markov Tutorial for Time Dependent Markov Model}
+  %\VignetteIndexEntry{M2 Advanced Markov Tutorial for Time Dependent Markov Model}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -2,7 +2,7 @@
 title: "Introduction to Markov modeling"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Introduction to Markov modeling}
+  %\VignetteIndexEntry{M1 Introduction to Markov modeling}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -1,9 +1,9 @@
 ---
-title: "gmod: getting started with decision models"
+title: "getting started with decision models using gmod"
 output: rmarkdown::html_vignette
 author: "Hawre Jalal hjalal@uottawa.ca"
 vignette: >
-  %\VignetteIndexEntry{gmod: getting started with decision models}
+  %\VignetteIndexEntry{D0 getting started with decision models using gmod}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -2,7 +2,7 @@
 title: "Decision Tree Herpes Virus Encephalopathy"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Decision Tree Herpes Virus Encephalopathy}
+  %\VignetteIndexEntry{D1 Decision Tree Herpes Virus Encephalopathy}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

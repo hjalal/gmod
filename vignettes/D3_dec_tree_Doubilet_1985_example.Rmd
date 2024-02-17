@@ -2,7 +2,7 @@
 title: "Herpes Simplex Decision Tree Example Doubilet 1985"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Herpes Simplex Decision Tree Example Doubilet 1985}
+  %\VignetteIndexEntry{D3 Herpes Simplex Decision Tree Example Doubilet 1985}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

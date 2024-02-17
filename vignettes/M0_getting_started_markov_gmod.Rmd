@@ -5,7 +5,7 @@ output:
     toc: true
     toc_depth: 3
 vignette: >
-  %\VignetteIndexEntry{gmod: getting started with building Markov models}
+  %\VignetteIndexEntry{M0 gmod: getting started with building Markov models}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
