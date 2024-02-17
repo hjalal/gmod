@@ -1,5 +1,5 @@
 ---
-title: "Markov Tutorial Age Dependent"
+title: "M3 Markov Tutorial Age Dependent"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{M3 Markov Tutorial Age Dependent}

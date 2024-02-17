@@ -1,5 +1,5 @@
 ---
-title: "Advanced Markov Tutorial for Time Dependent Markov Model"
+title: "M2 Advanced Markov Tutorial for Time Dependent Markov Model"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{M2 Advanced Markov Tutorial for Time Dependent Markov Model}

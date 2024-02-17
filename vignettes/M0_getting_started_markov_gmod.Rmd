@@ -1,5 +1,5 @@
 ---
-title: "gmod: getting started with building Markov models"
+title: "M0 gmod: getting started with building Markov models"
 output: 
   rmarkdown::html_vignette:
     toc: true

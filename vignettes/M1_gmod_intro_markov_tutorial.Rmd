@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Markov modeling"
+title: "M1 Introduction to Markov modeling"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{M1 Introduction to Markov modeling}

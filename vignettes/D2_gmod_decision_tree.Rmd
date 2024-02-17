@@ -1,5 +1,5 @@
 ---
-title: "Introduction to Decision Trees"
+title: "D2 Introduction to Decision Trees"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{D2 Introduction to Decision Trees}

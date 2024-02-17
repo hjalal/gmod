@@ -1,5 +1,5 @@
 ---
-title: "Decision Tree Herpes Virus Encephalopathy"
+title: "D1 Decision Tree Herpes Virus Encephalopathy"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{D1 Decision Tree Herpes Virus Encephalopathy}

@@ -1,5 +1,5 @@
 ---
-title: "getting started with decision models using gmod"
+title: "D0 getting started with decision models using gmod"
 output: rmarkdown::html_vignette
 author: "Hawre Jalal hjalal@uottawa.ca"
 vignette: >

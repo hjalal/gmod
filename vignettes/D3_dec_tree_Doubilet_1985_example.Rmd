@@ -1,5 +1,5 @@
 ---
-title: "Herpes Simplex Decision Tree Example Doubilet 1985"
+title: "D3 Herpes Simplex Decision Tree Example Doubilet 1985"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{D3 Herpes Simplex Decision Tree Example Doubilet 1985}
