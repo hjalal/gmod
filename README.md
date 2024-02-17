@@ -1,6 +1,6 @@
 gmod 
 
-Welcome to gmod that uses Grammar of Modelling for building and evauluating decision trees and Markov models specifically designed for Medical Decision Making and Health Economic Evaluations.
+Welcome to gmod that uses Grammar of Modelling R package (gmod) for building and evauluating decision trees and Markov models specifically designed for Medical Decision Making and Health Economic Evaluations.
 install_github("hjalal/gmod", build_vignettes = TRUE, force = TRUE)
 This will allow the Vignettes to be built.
 
@@ -12,3 +12,5 @@ Start Vignettes
 browseVignettes(package="gmod")
 
 There are currently several examples in the Vignettes for building decision trees and markov models. The example graudally become more complex.  
+
+gmod is distributed under GPL-3 license. Both Decision Twigs and gmod are provided as-is and come with absolutely no warranty.
