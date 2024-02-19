@@ -9,8 +9,9 @@ For a visual interface for generating gmod syntax interactively and visualize th
 Getting Started: 
 
 Start Vignettes
+
 browseVignettes(package="gmod")
 
-There are currently several examples in the Vignettes for building decision trees and markov models. The example graudally become more complex.  
+There are several examples in the Vignettes for building decision trees and markov models. The example graudally become more complex.  
 
 gmod is distributed under GPL-3 license. Both Decision Twigs and gmod are provided as-is and come with absolutely no warranty.
