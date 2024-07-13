@@ -187,6 +187,7 @@ The warning just indicates that no parameters were passed, so gmod uses the valu
 We can load individual outcomes here that we are interested in. For example, if we are interested in the Markov Trace of the Standard of Care treatment, we can type: 
 ```{r}
 model_res$Trace
+rowSums(model_res$Trace)
 ```
 
 Similarly, we can load the summary outcomes of the costs and utility of the strategies, such that:

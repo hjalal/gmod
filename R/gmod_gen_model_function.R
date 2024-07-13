@@ -19,7 +19,7 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #'
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
-
+# end decisions
 gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles, 
                                                 model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
   model_struc <- gmod_build(mygmod) #, n_cycles) 
@@ -131,7 +131,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
   
   # Add state_payoffs code ===== 
   
-  # iterate throught the equation lines and send them to the model code builder
+  # iterate through the equation lines and send them to the model code builder
   for (payoff_name in payoff_names){
     model_lines <- c(model_lines, paste0("\n #State Payoffs:", payoff_name))
     

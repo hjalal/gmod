@@ -1,4 +1,21 @@
 url: ~
-template:
-  bootstrap: 5
 
+home:
+  title: "Home"
+  href: index.html
+
+navbar:
+  structure:
+    left: [home, reference, articles]
+    right: [github]
+  components:
+    home:
+      text: "Home"
+      href: index.html
+    github:
+      icon: fa-github
+      href: https://github.com/hjalal/gmod
+
+template:
+  params:
+    bootswatch: flatly
