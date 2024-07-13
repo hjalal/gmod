@@ -33,7 +33,7 @@ Consider a simple Markov model with 2 decisions: StandardofCare, and NewTreatmen
 
 First, we define the **generic cycle tree**, which is at the core of the Grammar of Modeling.
 
-![[DecisionTwig](https://www.dashlab.ca/projects/decision_twig/)](decision_twig_demo.png){width="400"}
+![[DecisionTwig](https://www.dashlab.ca/projects/decision_twig/)](man/figures/decision_twig_demo.png){width="400"}
 
 This same generic cycle tree is applied to both health states ("Healthy" and "Dead"). For example, in each cycle a proportion of the cohort that is healthy, will die. This will be determined by the function `pDie(state="Healthy")`. The rest will stay healthy computed by the infinity `Inf` placeholder which `gmod` will translate to `1-pDie(state="Healthy")`. The proportion that remains healthy handled by the special health state `curr_state`. Likewise, this cycle tree will also be applied to the proportion of the cohort that is already dead. But, in this case, none of the cohort will die because `pDie(state="Dead")` returns 0.
 
@@ -190,7 +190,7 @@ currently, `gmod` can support these features:
 
 -   discounting
 
-Explore **gmod** capabilities by reviewing in the [Articles](https://hjalal.github.io/gmod/articles/) section. Currently, there are 8 vignettes, 4 for decision trees D0-D3, and 4 for Markov models M0-M3. The vignettes are labelled from 0 to 3 going from beginner to advanced showing examples of the features above and the output of `gmod`.
+Explore **gmod** capabilities by reviewing the vignettes in the **Articles** section. Currently, there are 8 vignettes, 4 for decision trees D0-D3, and 4 for Markov models M0-M3. The vignettes are labelled from 0 to 3 going from beginner to advanced.
 
 ## Disclaimer
 
