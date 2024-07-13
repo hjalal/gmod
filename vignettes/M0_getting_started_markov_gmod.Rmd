@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 The purpose of this vignette is to demonstrate how gmod can be used to build common features of a Markov model. For decision modeling, please check the getting started with decision modeling vignette.
 
-For a graphical interface to build the gmod syntax, please check <https://www.dashlab.ca/decision_twigs.html>.
+For a graphical interface to build the gmod syntax, please check <https://www.dashlab.ca/projects/decision_twig>.
 
 This vignette only explains the features one at a time to emphasize each individual feature. For examples on how to build a complete Markov model or a decision model, please refer to the detailed introductory and advanced Markov tutorial vignettes for Markov models, and the Herpes Simplex Virus (HSV) and the Doubilet vignettes for decision tree examples.
 
