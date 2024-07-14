@@ -190,7 +190,7 @@ currently, `gmod` can support these features:
 
 -   discounting
 
-Explore **gmod** capabilities by reviewing the vignettes in the **Articles** section. Currently, there are 8 vignettes, 4 for decision trees D0-D3, and 4 for Markov models M0-M3. The vignettes are labelled from 0 to 3 going from beginner to advanced.
+Explore **gmod** capabilities by reviewing the vignettes in the [**Articles**](https://hjalal.github.io/gmod/) section. Currently, there are 8 vignettes, 4 for decision trees D0-D3, and 4 for Markov models M0-M3. The vignettes are labelled from 0 to 3 going from beginner to advanced.
 
 ## Disclaimer
 
