@@ -1,5 +1,11 @@
 # Grammar of Modeling (gmod)
 
+## Documentation and Tutorials
+
+For detailed documentation and tutorials, please visit our [GitHub Pages site](https://hjalal.github.io/gmod). The Articles section provides several detailed vignettes on the use of `gmod`.
+
+**gmod** (Grammar of Modelling) is an R package for build Markov models and decision trees for Medical Decision Making and cost-effectiveness analyses. There is a graphical user interface at [DecisionTwig](https://www.dashlab.ca/projects/decision_twig/) to develop with the gmod syntax visually.
+
 ## Installation
 
 To install **gmod** from GitHub, use the following command in R:
@@ -10,8 +16,6 @@ install_github("hjalal/gmod")
 ```
 
 ## Overview
-
-**gmod** (Grammar of Modelling) is an R package for build Markov models and decision trees for Medical Decision Making and cost-effectiveness analyses. There is a graphical user interface at [DecisionTwig](https://www.dashlab.ca/projects/decision_twig/) to develop with the gmod syntax visually.
 
 `gmod` builds a model in layers, similar to `ggplot2`:
 
