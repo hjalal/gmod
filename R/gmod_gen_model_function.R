@@ -21,7 +21,10 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' print("see vignettes: vignettes(package='gmod')")
 
 gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles, 
-                                                model_function_name = "my_markov_model", print_model_function = FALSE, sparse = FALSE, return_model_structure = TRUE){
+                                                model_function_name = "my_markov_model", 
+                                                print_model_function = FALSE, 
+                                                sparse = FALSE, 
+                                                return_model_structure = TRUE){
   model_struc <- gmod_build(mygmod) #, n_cycles) 
   model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
@@ -86,6 +89,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
       model_lines <- c(model_lines, "for (decision in decisions){")
       decision_str <- "decision"
     } else decision_str <- ""
+    
     if (!is_cycle_dep){
       cycle_str <- ""
     } else if(is_cycle){
@@ -94,13 +98,15 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
     } else {
       cycle_str <- ","
     }
+    
     if(is_state){
       model_lines <- c(model_lines, "for (state_expanded in states_expanded){")
       state_str <- "state_expanded"
     } else state_str <- ""
+    
     if(is_tunnel){
       if (!is_state){
-        stop("cycle_in_state cannot be used without state.  If cycle_in_state is passed as an argumetn for a user-defined function, state must also be passed as an argument")
+        stop("cycle_in_state cannot be used without state.  If cycle_in_state is passed as an argument for a user-defined function, state must also be specified.")
       }
       model_lines <- c(model_lines, "state_comp <- tunnel2state(state_expanded)")
       model_lines <- c(model_lines, "state <- state_comp$state")
@@ -108,6 +114,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
     } else {
       model_lines <- c(model_lines, "state <- state_expanded")
     }
+    
     if(dest=="'curr_state'"){ # if dest == current state, then add prob to existing prob
       if(is_tunnel){ # if there are no tunnels in the model, no need to check
         model_lines <- c(model_lines, "if (state %in% tunnel_states){")
@@ -122,7 +129,6 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
       model_lines <- c(model_lines, paste0("P[", state_str, ", dest,", cycle_str, decision_str, "] <- ", prob))
     }
     
-    
     if(is_state) model_lines <- c(model_lines, "} # end state")
     if(is_cycle) model_lines <- c(model_lines, "} # end cycle")
     if(is_decision) model_lines <- c(model_lines, "} # end decisions")
@@ -131,9 +137,18 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
   
   # Add state_payoffs code ===== 
   
-  # iterate throught the equation lines and send them to the model code builder
+  # iterate through the equation lines and send them to the model code builder
   for (payoff_name in payoff_names){
     model_lines <- c(model_lines, paste0("\n #State Payoffs:", payoff_name))
+    # if any payoff equation has these keywords, activate 
+    is_decision <- is_state <- is_cycle <- is_tunnel <- FALSE
+    for (i in 1:nrow(model_equations)){
+    new_payoff <- model_equations[[payoff_name]][i]
+    if(!is_decision) is_decision <- grepl("\\bdecision\\b", new_payoff) 
+    if(!is_state) is_state <- grepl("\\bstate\\b", new_payoff)
+    if(!is_cycle) is_cycle <- grepl("\\bcycle\\b", new_payoff)
+    if(!is_tunnel) is_tunnel <- grepl("\\bcycle_in_state\\b", new_payoff)
+    }
     
     # if the destination is a tunnel state, then use it with state_tnl1
     if(is_decision){
@@ -167,10 +182,10 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
       dest <- model_equations$dest[i]
       
       new_payoff <- model_equations[[payoff_name]][i]
-      is_decision <- grepl("\\bdecision\\b", new_payoff)
-      is_state <- grepl("\\bstate\\b", new_payoff)
-      is_cycle <- grepl("\\bcycle\\b", new_payoff)
-      is_tunnel <- grepl("\\bcycle_in_state\\b", new_payoff)
+      # is_decision <- grepl("\\bdecision\\b", new_payoff)
+      # is_state <- grepl("\\bstate\\b", new_payoff)
+      # is_cycle <- grepl("\\bcycle\\b", new_payoff)
+      # is_tunnel <- grepl("\\bcycle_in_state\\b", new_payoff)
       # is the line a function of state? 
       model_lines <- c(model_lines, paste0("# destination:", dest))
       #model_lines <- c(model_lines, paste0("dest<-", dest))
