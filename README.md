@@ -202,4 +202,6 @@ Please note that both **Decision Twigs** and **gmod** are still under active dev
 
 ## Suggested citations:
 
-Jalal, H. (2024). Grammar of Modelling, gmod R package. Retrieved from <https://github.com/hjalal/gmod> Jalal, H. (2024). DecisionTwig. Retrieved from <https://www.dashlab.ca/projects/decision_twig/>
+Jalal, H. (2024). Grammar of Modelling, gmod R package. Retrieved from <https://github.com/hjalal/gmod>
+
+Jalal, H. (2024). DecisionTwig. Retrieved from <https://www.dashlab.ca/projects/decision_twig/>

@@ -41,7 +41,7 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
     }
     values_df[fun_name] <- x
     variable_name <- paste0("df_", fun_name)
-    cat("Note: The dataset ", variable_name, " created for function ", fun_name, ".\n")
+    cat("Note: The dataset ", variable_name, " created for function ", fun_name, ".\n", sep = "")
     assign(variable_name, values_df, envir = .GlobalEnv)
     # add sheets to workbook
     if (!is.null(excel_file_name)){
