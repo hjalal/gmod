@@ -6,15 +6,27 @@ home:
 
 navbar:
   structure:
-    left: [home, reference, articles]
+    left: [home, reference, articles, DecisionTwig]
     right: [github]
   components:
     home:
-      text: "Home"
+      icon: fa-home fa-lg
+      #text: "Home"
       href: index.html
     github:
       icon: fa-github
       href: https://github.com/hjalal/gmod
+    DecisionTwig:
+      href: https://www.dashlab.ca/projects/decision_twig/
+      html: <img src='man/figures/DecisionTwig.png' alt='DecisionTwig' width='100' />
+      
+authors:
+  Hawre Jalal:
+    href: https://github.com/hjalal
+  DASH Lab: 
+    href: https://www.dashlab.ca
+    html: <img src='man/figures/dashlab_logo.png' alt='DASH Lab' width='72' />
+    
 
 template:
   params:
