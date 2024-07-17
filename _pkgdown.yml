@@ -1,33 +1,53 @@
 url: ~
 
-home:
-  title: "Home"
-  href: index.html
+template:
+  bootstrap: 5
 
 navbar:
   structure:
-    left: [home, reference, articles, DecisionTwig]
-    right: [github]
+    left: 
+      - home
+      - reference
+      - articles
+      - DecisionTwig
+    right: 
+      - github
   components:
     home:
       icon: fa-home fa-lg
-      #text: "Home"
       href: index.html
+    reference:
+      text: Reference
+      href: reference/index.html
     github:
       icon: fa-github
       href: https://github.com/hjalal/gmod
+    articles:
+      text: Articles
+      menu:
+        - text: D0 getting started with decision models using gmod
+          href: articles/D0_getting_started_decision_models.html
+        - text: D1 Decision Tree Herpes Virus Encephalopathy
+          href: articles/D1_decision_tree_DARTH_HVE_example.html
+        - text: D2 Introduction to Decision Trees
+          href: articles/D2_gmod_decision_tree.html
+        - text: D3 Herpes Simplex Decision Tree Example Doubilet 1985
+          href: articles/D3_dec_tree_Doubilet_1985_example.html
+        - text: M0 gmod getting started with building Markov models
+          href: articles/M0_getting_started_markov_gmod.html
+        - text: M1 Introduction to Markov modeling
+          href: articles/M1_gmod_intro_markov_tutorial.html
+        - text: M2 Advanced Markov Tutorial for Time Dependent Markov Model
+          href: articles/M2_gmod_advanced_markov_tutorial.html
+        - text: M3 Markov Tutorial Age Dependent
+          href: articles/M3_Markov_age_dep.html
     DecisionTwig:
       href: https://www.dashlab.ca/projects/decision_twig/
       html: <img src='man/figures/DecisionTwig.png' alt='DecisionTwig' width='100' />
-      
+
 authors:
   Hawre Jalal:
     href: https://github.com/hjalal
-  DASH Lab: 
+  DASH Lab:
     href: https://www.dashlab.ca
     html: <img src='man/figures/dashlab_logo.png' alt='DASH Lab' width='72' />
-    
-
-template:
-  params:
-    bootswatch: flatly
