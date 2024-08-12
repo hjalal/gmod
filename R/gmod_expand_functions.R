@@ -67,6 +67,10 @@ fun_get_arg_values <- function(gmod_obj, arg_name){
     } else if (arg_name %in% c("cycles","cycle_in_states")){
       arg_values <- 1:n_cycles
     }
+  } else if (arg_name %in% c("final_outcome")){
+    # only for decision trees
+    events_df <- get_event_df(gmod_obj)
+    arg_values <- get_final_outcomes(events_df)
 
   } else { #event name
     # Use lapply to filter the list based on the condition
