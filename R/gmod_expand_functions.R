@@ -13,7 +13,7 @@
 gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NULL){
   # for each function get the function arguments
   if (is.null(fun_names)){
-    fun_names <- fun_in_gmod(mygmod)
+    fun_names <- fun_in_gmod(gmod_obj)
   }
   #fun_name <- fun_names
   if (!is.null(excel_file_name)){
