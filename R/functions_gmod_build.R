@@ -2,15 +2,20 @@
 #' Create a new gmod
 #'
 #' @param model_type 
-#' @param n_cycles = 50 
 #' @return a new gmod object 
 #' @export
 #' @importFrom magrittr %>%
-#' @examples gmod(model_type = "Markov", n_cycles = 40)
+#' @examples gmod(model_type = "Markov", n_cycles = 10)
 #' 
-gmod <- function() {
-  gmod_obj <- list()
+gmod <- function(name, model_function_name = NULL) {
+  gmod_obj <- list(name = name)
+  if (!is.null(model_function_name)){
+    gmod_obj$model_function_name = model_function_name
+  }
   class(gmod_obj) <- c("gmod_decision", "gmod_class")
+  # if (!is.null(n_cycles)){
+  #   gmod_obj$n_cycles = n_cycles
+  # }
   gmod_obj
 }
 
@@ -183,6 +188,23 @@ payoffs <- function(...){
     l <- l1
   }
 return(l)
+}
+
+
+#' Define a print method for `gmod_class` objects
+#' @param gmod_obj The gmod object
+#' @export
+print.gmod_class <- function(gmod_obj) {
+  # Print the gmod object as usual
+  if (is.null(gmod_obj$model_function_name)){
+    model_struc <- gmod_gen_model_function(gmod_obj) 
+  } else {
+    model_struc <- gmod_gen_model_function(gmod_obj, model_function_name = gmod_obj$model_function_name) 
+  }
+  
+  gmod_obj <- c(gmod_obj, model_struc)
+  assign(gmod_obj$name, gmod_obj, envir = .GlobalEnv) # return it to the global environment
+  #print.default(gmod_obj)
 }
 
 

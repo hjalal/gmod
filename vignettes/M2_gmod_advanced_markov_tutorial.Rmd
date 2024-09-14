@@ -38,7 +38,7 @@ NEW Syntax using layers = twigs
 
 ```{r}
 n_cycles <- 5
-mygmod <- gmod() + # for illustration it is 75 in the tutorial 
+gmod(name = "mygmod") + # for illustration it is 75 in the tutorial 
   decisions("StandardOfCare", "StrategyA", "StrategyB", "StrategyAB") + 
   states(names=c("H", "S1", "S2", "D"), 
          init_probs=c(1,0,0,0),
@@ -196,6 +196,7 @@ du_HS1 = 0.01,  # disutility when transitioning from Healthy to Sick
 ic_HS1 = 1000,  # increase in cost when transitioning from Healthy to Sick
 ic_D   = 2000  # increase in cost when dying
 )
+list2env(params, envir = .GlobalEnv)
 ```
 
 
@@ -321,24 +322,19 @@ The output is the structure of the model including the formulae.
 
 To evaluate the model, we run `gmod_evaluate()` which returns the numerical outcomes. 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-model_struc
+gmod_evaluate_functions(mygmod, n_cycles = n_cycles)
+
 ```
 
 ```{r}
 #source("../R/myfun.R")
 
-model_results <- my_markov_model(model_struc, params, return_trace = T)
+model_results <- my_markov_model(mygmod, params = params, n_cycles = n_cycles, return_trace = T)
 dim(model_results$Trace)
 model_results
 
 ```
 
-
-create datasets for the expanded variables
-```{r}
-gmod_expand_functions(mygmod)
-```
 
 
 ## simplified version 

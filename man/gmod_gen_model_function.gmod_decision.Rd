@@ -5,14 +5,14 @@
 \title{Title}
 \usage{
 \method{gmod_gen_model_function}{gmod_decision}(
-  model_struc,
+  gmod_obj,
   model_function_name = "my_decision_model",
   print_model_function = FALSE,
   return_model_structure = TRUE
 )
 }
 \arguments{
-\item{model_struc}{}
+\item{gmod_obj}{}
 
 \item{model_function_name}{}
 

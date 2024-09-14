@@ -3,7 +3,6 @@
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
 #'
 #' @return gmod object
-#' @export
 #'
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
@@ -13,7 +12,6 @@ gmod_evaluate <- function(x, ...) UseMethod("gmod_evaluate")
 #' Runs the markov model
 #' @description runs the markov model and returns the traces and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod object from the gmod_parse() function
-#' @export
 #' 
 #' @return gmod object
 #'
@@ -181,7 +179,6 @@ construct_Payoff <- function(model_num_struc){
 #' Runs the decision tree
 #' @description runs the decision model and returns the expected payoff values and summary outcomes
 #' @param model_num_struc a matrix containing the numerical gmod decision object from the gmod_parse() function
-#' @export
 #' 
 #' @return gmod object
 #'

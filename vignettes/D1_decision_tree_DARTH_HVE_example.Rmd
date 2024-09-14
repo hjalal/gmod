@@ -28,7 +28,7 @@ gmod model definition
 p_comp() takes in two arguments, one is the special keyword decision, and the other is a custom one.  This is a good example that custom arguments and values can be passed to define functions for the event_mapping and the payoffs. Thus, the return values can be a function of these arguments and it can reduce the amount of typing required if one choses to define multiple functions. 
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod") + 
   decisions("DoNotTreat", "Treat", "Biopsy") + 
   #final_outcomes("Death", "HVE_comp", "no_HVE_comp", "OVE_comp", "no_OVE_comp") +
   #events("DIE", "HVE","get_comp") + 
@@ -129,15 +129,6 @@ testing some of the functions outside of the model
 #effectiveness("Biopsy", "Death")
 ```
 
-```{r}
-model_struc <- gmod_build(mygmod)
-model_struc
-```
-
-```{r}
-model_res <- gmod_gen_model_function(model_struc)
-model_res
-```
 
 ```{r}
 my_decision_model(params)

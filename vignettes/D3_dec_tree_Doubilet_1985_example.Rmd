@@ -67,7 +67,7 @@ This structure is meant to reproduce the tree structure as presented in Doubilet
 
 ## Binary event final_outcomes similar to Doubilet 1985
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod", model_function_name = "doubilet_1985_model") + 
   decisions("BrainBiopsy", "NoBiopsy_Treat", "NoBiopsy_NoTreat") + 
   #final_outcomes("DEAD","SEVSEQHSE","MODSEQHSE","MLDSEQHSE") + 
   event(name = "Biopsy",  
@@ -172,31 +172,6 @@ util <- function(decision, final_outcome, sevBiopSeq, modBiopSeq){
 
 
 ```{r}
-model_struc <- gmod_build(mygmod)
-model_struc
-```
-
-
-```{r}
-gmod_gen_model_function(model_struc, model_function_name = "doubilet_1985_model")
-```
-
-```{r}
-doubilet_1985_model(params)
-```
-
-### with simplification - where paths that generate 0 prob are removed
-```{r}
-model_struc <- gmod_build(mygmod, params = params, simplify = TRUE)
-model_struc
-```
-
-
-```{r}
-gmod_gen_model_function(model_struc, model_function_name = "doubilet_1985_model")
-```
-
-```{r}
 doubilet_1985_model(params)
 ```
 
@@ -211,13 +186,6 @@ This tree is a good example of how events can be reduced significantly and the t
 ### Doubilet 1985 fully expanded decision tree in OpenTree
 ```{r, echo=FALSE, out.width='800px'}
 knitr::include_graphics("Doubilet_1985_diagram_OpenTree.jpg")
-
-```
-
-
-## Multiple final_outcomes per event
-The impact of reducing the binary final_outcomes on the gmod structure.
-```{r}
 
 ```
 

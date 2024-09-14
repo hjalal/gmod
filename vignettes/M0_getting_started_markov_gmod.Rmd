@@ -27,11 +27,11 @@ This vignette only explains the features one at a time to emphasize each individ
 
 # Overview of gmod:
 
-gmod is built on the grammar of modeling principle which aims to describe a model in terms of its main components. The idea is to reduce the complexity of a decision/Markov model to it's principal components (Twigs). gmod is inspired by the grammer of graphics (ggplot) and the grammar of data wranggling (dplyr) package for data wrangling. Similar to ggplot which builds a graph by combining layers, gmod then *writes* the model code for you!
+gmod is built on the grammar of modeling principle which aims to describe a model in terms of its main components. The idea is to reduce the complexity of a decision/Markov model to it's principal components (Twigs). gmod is inspired by the grammer of graphics (ggplot) and the grammar of data wrangling (dplyr) package for data wrangling. Similar to ggplot which builds a graph by combining layers, gmod then *writes* the model code for you!
 
 ## gmod functions:
 
-gmod has two main external functions. The first function is `gmod()` which instantiates the basic gmod object that can be supplemented with one or more twigs containing the components of the Markov model.
+gmod has one main function `gmod()` which instantiates the basic gmod object that can be supplemented with one or more twigs containing the components of the Markov model.
 
 a gmod syntax for a Markov model currently consist of the following twigs:
 
@@ -40,15 +40,15 @@ a gmod syntax for a Markov model currently consist of the following twigs:
 -   `event`: one or more twig describing, how events control transition among states. These transitions can be conditional on the decisions, Markov states, previous events, number of cycles, and number of cycles in a state (i.e., tunnels).
 -   `payoffs`: a single payoff twig, such as costs, effectiveness, utility, ... etc. Similar to the events, these can also depend on the decisions, Markov states, events, number of cycles, and number of cycles in a state (i.e., tunnels).
 
-The second function is `gmod_gen_model_function()` which returns mainly creates a new function named `my_markov_model` that represents the model code in standard R that can be run independently of gmod. This function also returns other useful information, such as the model structure and the equations involved in the transition probabilities and payoffs ...etc.
+gmod creates a new function named `my_markov_model` by default that represents the model code in standard R that can be run independently of gmod. This function also returns other useful information, such as the model structure and the equations involved in the transition probabilities and payoffs ...etc.
 
-The `my_markov_model()` represents the entire model structure, and can be called directly. This function takes in a parameter list `param` which include the model parameter values, and returns the Markov results, such as the discounted lifetime costs and quality adjusted life-years (QALYs). It is important to pass the number of cycles `n_cycles` as a parameter as we discussed below. As described below, in addition to the main payoffs, this function can also return other intermediate outputs, such as the transitional probability matrices, the cohort's Markov trace over time, and others.
+The `my_markov_model()` represents the entire model structure, and can be called directly. This function takes in a parameter list `param` which include the model parameter values, and returns the Markov results, such as the discounted lifetime costs and quality adjusted life-years (QALYs). It is important to pass the number of cycles `n_cycles` as an argument to gmod. As described below, in addition to the main payoffs, this function can also return other intermediate outputs, such as the transitional probability matrices, the cohort's Markov trace over time, and others.
 
 We will start with building a minimal Markov model to illustrate the basic principles of `gmod`. Then, we will introduce how to add other functionality, such as cycle dependency, tunnels...etc. For each feature, we will only show how to add that feature to reduce complexity. For full models that contain many of these features in the same model, please refer to the introductory and advanced Markov tutorials vignettes.
 
 # A minimal example
 
-We will adapt the sick-sicker model (ref) that we often use in our DARTH materials and teachings.
+We will adapt the sick-sicker model that we often use in our DARTH materials and teachings.
 
 First, install gmod using devtools. Also, make sure to enable use_vignettes so that vignettes render correctly.
 
@@ -70,7 +70,7 @@ library(magrittr)
 We will start with a basic `gmod()` syntax looks like this:
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod") + 
   decisions("StandardOfCare", "StrategyA") + 
   states(names = c("H", "S", "D"), init_probs = c(1,0,0)) + 
   event(name = "only_event",  
@@ -89,10 +89,10 @@ Here are the explanation of what each twig does:
     -   names: H for healthy, S for sick and D for dead.
     -   init_probs for initial probabilities, and
     -   optional max_cycle_in_states which defines the maximum number of tunnel states per state. This option is omitted here, so the function uses the default of 1.
--   `event(...)`: is the most powerful feature in gmod and it governs how the states are linked through events. In the Grammar of Modeling we distinguish between a *state* and an *event*. We use a noun for a `state` to indicate where the cohort stays a full cycle (e.g., one year), and use a verb to refer to an `event`, which in a Markov world is instantaneous and doesn't take any time at all (e.g., `get_sick` for getting sick). There has to be at least one `event` twig, but there can be more events that can be chained together as we explain below. The event mapping takes in four arguments: name, scenarios, outcomes, and probs. We will explain each of these separately:
+-   `event(...)`: is the flexible feature in gmod and it governs how the states are linked through events. In the Grammar of Modeling we distinguish between a *state* and an *event*. We use a noun for a `state` to indicate where the cohort stays a full cycle (e.g., one year), and use a verb to refer to an `event`, which in a Markov world is instantaneous and doesn't take any time at all (e.g., `get_sick` for getting sick). There has to be at least one `event` twig, but there can be more events that can be chained together as we explain below. The event mapping takes in four arguments: name, scenarios, outcomes, and probs. We will explain each of these separately:
     -   `event = "only_event"`: defines the event name. Each event must have a unique name that can be referenced by other events's probability statements or payoff equations as described below.
     -   `scenarios = c("get_sick", "die", "stay")`: defines the event scenarios: here the event can only be one of these: getting sick, dying or staying in the current state.
-    -   `probs = c(pGetSick(state), pDie(decision, state), Inf))`: these are the probabilities of the correspondign scenarios occuring. A powerful feature of gmod is that it allows these probabilities to be conditional on other model components. Here we define the probability of only_event==get_sick by calling pGetSick(state) which is dependent on the state. Similarly, the probability of only_event==die is defined by calling `pDie(decision, state)` which we tell gmod that is dependent on the state and the decision. `pGetSick` and `pDie` are user-defined functions that we describe below. The `Inf` is used to tell gmod to compute the complementary probability for the probability of staying in the same state: (i.e., 1-pGetSick(state)-pDie(state)) to reduce the amount of typing needed.
+    -   `probs = c(pGetSick(state), pDie(decision, state), Inf))`: these are the probabilities of the corresponding scenarios occuring. A powerful feature of gmod is that it allows these probabilities to be conditional on other model components. Here we define the probability of only_event==get_sick by calling pGetSick(state) which is dependent on the state. Similarly, the probability of only_event==die is defined by calling `pDie(decision, state)` which we tell gmod that is dependent on the state and the decision. `pGetSick` and `pDie` are user-defined functions that we describe below. The `Inf` is used to tell gmod to compute the complementary probability for the probability of staying in the same state: (i.e., 1-pGetSick(state)-pDie(state)) to reduce the amount of typing needed.
     -   `outcomes = c("S", "D", "curr_state")`: defines the outcomes of each one of the event values. getting sick ends up in the S state, dying ends up in the D state, and staying will return to whichever state the cohort was in using the special keyword `"curr_state"`.
 -   `payoffs(cost = cost(decision, state))`: defines a single payoff hers. Here we only have a cost payoff that is dependent on the state and decision. More than one payoff can be described here, but only a single payoff twig is allowed. And, similar to the probs argument these can be a function of other model components, such as decision, state, cycles, events, tunnels, ...etc
 
@@ -101,7 +101,7 @@ Here are the explanation of what each twig does:
 In this section, we define the three functions: `pGetSick`, `pDie` and `cost` that we use above in our `event_mapping` and the `payoffs()` layers above:
 
 ```{r}
-pGetSick <- function(state){
+pGetSick <- function(state, cycle){
   if(state=="H") 0.1 else 0
 }
 
@@ -128,20 +128,10 @@ As your functions get more complex, we recommended that you test them to make su
 
 Evaluate the functions 
 ```{r}
-gmod_expand_functions(mygmod)
-head(df_pDie)
+gmod_evaluate_functions(mygmod, n_cycles = 5)
+head(df_pGetSick)
 ```
 
-
-```{r}
-for (decision in c("StandardOfCare", "StrategyA")){
-  for (state in c("H", "S", "D")){
-    cat("decision:", decision, " state:", state, " pGetSick:", pGetSick(state), 
-        " pDie:", pDie(decision, state), " cost:", compute_cost(decision, state), "\n")
-  }
-}
-
-```
 
 The functions seem to be outputting the correct numbers. switch is similar to if else, but can be more compact than multiple if else statements.
 
@@ -149,18 +139,12 @@ The functions seem to be outputting the correct numbers. switch is similar to if
 
 Now we have all the ingredients to run the model.
 
-First, we need to generate the model function code
-
-```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-```
-
-This will create the `model_struc` which contains the model equations and formulae and can be examined, and as stated in the generated note, this function also produces a function representation of the Markov model. The default name of this function is `my_markov_model.`
+`mygmod`  contains the model equations and formulae and can be examined, and as stated in the generated note, this function also produces a function representation of the Markov model. The default name of this function is `my_markov_model.`
 
 Let's examine the content of these two object. First, let's check the model structure
 
 ```{r}
-model_struc # returns the model structure including the formulae before evaluation
+mygmod # returns the model structure including the formulae before evaluation
 ```
 
 examining the content of this structure can be helpful to debug a model by examining the individual layers and formulae. For example \$model_equations returns the probability and cost formulae as plain text. These can be evaluated by calling them directly if needed. For example, if we want to know what is the probability of staying at the Healthy state we can just copy the content of the probs column corresponding to curr_state and evaluate it with the corresponding parameters:
@@ -169,10 +153,10 @@ examining the content of this structure can be helpful to debug a model by exami
 (1-(pGetSick(state="H")+pDie(decision="StandardOfCare",state="H"))) 
 ```
 
-Next, we can also examine the contents of the my_markov_model function which generates the text.
+Next, we can also examine the contents of the my_markov_model function which generates the text - here we shoe the first 10 lines of the generated function.  You can also click on the function, or type `edit(my_markov_model)`
 
 ```{r}
-my_markov_model #without parenthesis returns the function text
+head(my_markov_model, n = 10) #without parenthesis returns the function text
 ```
 
 The generated code is build on our introductory and advanced Markov tutorials in *Medical Decision Making*. For further information, please refer to these tutorials.
@@ -180,14 +164,13 @@ The generated code is build on our introductory and advanced Markov tutorials in
 Now, let's run the model function and generate our summary results of running the model for 5 cycles and computing the cumulative cost for our cohort.
 
 ```{r}
-n_cycles <- 10
-my_markov_model(model_struc)
+my_markov_model(mygmod, n_cycles = 50)
 ```
 
 You can also retrieve the other components of the Markov model run, such as the Markov trace which shows the proportion of the cohort in each of the states for each of the 5 cycles.
 
 ```{r}
-model_results <- my_markov_model(model_struc, return_trace = T)
+model_results <- my_markov_model(mygmod, n_cycles = 5, return_trace = T)
 model_results$Trace
 ```
 
@@ -200,7 +183,8 @@ We start by modifying some of the basic features of our markov model. We will ex
 Changing the number of Markov cycles is straightforward by changing the `n_cycles` parameter in the `gmod` function. For example, below we change the number of cycles from 5 to 2:
 
 ```{r}
-mygmod <- gmod()
+model_results <- my_markov_model(mygmod, n_cycles = 2, return_trace = T)
+model_results$Trace
 ```
 
 ## changing initial probabilities:
@@ -228,18 +212,18 @@ states(names = c("H","S","D"), init_probs = c(pH0, pS0, Inf))
 To run the model with this updated probabilities, we need to add it as a new `init_prob` layer to the `gmod` code.
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("StandardOfCare", "StrategyA") + 
   states(names = c("H","S","D"), init_probs = c(pH0, pS0, Inf)) + 
   event(name = "only_event",  
               scenarios = c("get_sick", "die", "stay"), 
-              probs = c(pGetSick(state), pDie(decision, state), Inf), 
+              probs = c(pGetSick(state, cycle), pDie(decision, state), Inf), 
               outcomes = c("S", "D", "curr_state")) +  
   payoffs(cost = compute_cost(decision, state))
   
+gmod_evaluate_functions(mygmod, n_cycles = 3)
 # creating the updated function and evaluating it
-model_struc <- gmod_gen_model_function(mygmod)
-model_results <- my_markov_model(model_struc, return_trace = T)
+model_results <- my_markov_model(mygmod, n_cycles = 3, return_trace = T)
 model_results$Trace
 
 ```
@@ -253,7 +237,7 @@ gmod tries to check the composition of the probability vector and returns an err
 Changing the discount rate is similar to setting the initial probabilities. These can be set for all the payoffs. To illustrate, we will add an additional payoff (effectiveness), and use a discount rate of 3% per cycle for both costs and utilities.
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("StandardOfCare", "StrategyA") + 
   states(names = c("H", "S", "D"), init_probs = c(1,0,0)) +
   event(name = "only_event",  
@@ -269,10 +253,8 @@ compute_effectiveness <- function(state){
   switch(state, "H"=1, "S"=0.7, "D"=0)
 }
 
-# creating the updated function and evaluating it
-model_struc <- gmod_gen_model_function(mygmod)
 # we look at the cycle payoffs which apply the discounts to the cycle payoffs.
-my_markov_model(model_struc, return_cycle_payoffs=TRUE)
+my_markov_model(mygmod, n_cycles = 10, return_cycle_payoffs=TRUE)
 ```
 
 # Transition probability and payoffs conditional on Markov cycle:
@@ -282,7 +264,7 @@ Sometimes we want a probability of transition from one state to another, or a pa
 The code below shows the previous code in a single block where we modify the probability of death and cost payoff to depend on cycle. See if you can spot the difference:
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("StandardOfCare", "StrategyA") + 
   states(names = c("H", "S", "D"), init_probs = c(1,0,0)) +
   event(name = "only_event",  
@@ -307,28 +289,19 @@ compute_cost <- function(decision, state, cycle){
   cost_state+cost_decision
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
 ```
 
 Of course, we only need to add the variable cycle to the function definitions `pDie` and `compute_cost` and also remember to add them to the function calls in the `gmod` function. For illustration we assume that `pDie` and the `cost` of the states both increased as a linear function of the Markov cycles, 1X, 2X, ..., 5X for cycles 1 through 5, respectively. Let's check first to see that our functions are correct, and then we will run the model and inspect the outputs.
 
 ```{r}
-for (decision in c("StandardOfCare", "StrategyA")){
-  for (state in c("H", "S", "D")){
-    for (cycle in 1:2){ # just print the first two cycles
-          cat("decision:", decision, " state:", state, " cycle:", cycle, " pGetSick:", pGetSick(state), 
-        " pDie:", pDie(decision, state, cycle), " cost:", compute_cost(decision, state, cycle), "\n")
-    }
-  }
-}
+gmod_evaluate_functions(mygmod, n_cycles = 5)
 
 ```
 
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-my_markov_model(model_struc)
+my_markov_model(mygmod, n_cycles = 5)
 ```
 
 ## Transition probabilty and payoff dependency on the number of cycles in a state (tunnel states or state residency):
@@ -338,7 +311,7 @@ Sometimes we have a different situation where we want to keep track of how long 
 Here we show how to do this again for pDie and compute_cost. We are only interested of a history of 3 years. Again - can you spot the difference compared to the minimal model?
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("StandardOfCare", "StrategyA") +
   states(names = c("H", "S", "D"), init_probs = c(1,0,0), max_cycle_in_states = c(1,3,1)) +  #
   event(name = "only_event",  
@@ -363,7 +336,6 @@ compute_cost <- function(decision, state, cycle_in_state){ #
   cost_state+cost_decision
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
 ```
 
 It is quite simple to add tunnel dependency by adding the `cycle_in_state` variable.
@@ -377,21 +349,14 @@ The other important change is that we have to add a tunnels() layer specifying t
 Let's check first to see that our functions are correct, and then we will run the model and inspect the outputs.
 
 ```{r}
-for (decision in c("StandardOfCare", "StrategyA")){
-  for (state in c("H", "S", "D")){
-    for (cycle_in_state in 1:2){ # just print the first two cycles
-          cat("decision:", decision, " state:", state, " cycle_in_state:", cycle_in_state, " pGetSick:", pGetSick(state), 
-        " pDie:", pDie(decision, state, cycle_in_state), " cost:", compute_cost(decision, state, cycle_in_state), "\n")
-    }
-  }
-}
+gmod_evaluate_functions(mygmod, n_cycles = 5)
+
 ```
 
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-model_results <- my_markov_model(model_struc, return_transition_prob = T, return_state_payoffs = T)
+model_results <- my_markov_model(mygmod, n_cycles = 5, return_transition_prob = T, return_state_payoffs = T)
 ```
 
 Let's examine the transition probability matrix structure with the tunnel state
@@ -417,7 +382,7 @@ It is relatively easy to add additional events to a Markov model. Please keep in
 Below we slightly modify the minimal example by converting the Sick state to an event. Assume that Sick is an acute disease that only takes a few days rather than a full cycle. We will have a sequence of events `get_sick` followed by `die`. Because Sick is no longer a state, we will use these two health states Alive and Dead and show how the probability of death can be a function of the event get_sick occuring before the event die. In addition, we will show how the cost can also be a function of the value of the sick_event. We will also look at one strategy "StandardOfCare to simplify the illustration.
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod") + 
   decisions("StandardOfCare") + 
   states(names = c("Alive", "Dead"), init_probs = c(1,0)) + 
   event(name = "get_sick",  
@@ -442,8 +407,7 @@ compute_cost <- function(state){
   cost_state
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
-my_markov_model(model_struc,return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
+my_markov_model(mygmod, n_cycles =5, return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
 
 ```
 
@@ -458,7 +422,7 @@ The other advantage of being able to refer to any event value is the ability to 
 Below we modify the previous example by making the probability of death a function of the event get_sick occurring upstream. In addition, we will show how the cost can also be a function of the value of the sick_event. We will also look at one strategy "StandardOfCare to simplify the illustration.
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod") + 
   decisions("StandardOfCare") + 
   states(names = c("Alive", "Dead"), init_probs = c(1,0)) + 
   event(name = "get_sick",  
@@ -491,20 +455,14 @@ Notice that now we have two sequential events. The first event is die, the secon
 The rest of the user-functions can stay the same. Below we show how to use prior events to influence the probability of transition and the payoffs.
 
 ```{r}
- for (state in c("Alive", "Dead")){
-   for (get_sick in c(TRUE, FALSE)){ # just print the first two cycles
-         cat(" state:", state, " get_sick:", get_sick, #
-       " pDie:", pDie(state, get_sick), " cost:", compute_cost(state, get_sick), "\n")
-   }
- }
+gmod_evaluate_functions(mygmod, n_cycles = 5)
 
 ```
 
 Now we can examine the impact of this on the model results
 
 ```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-my_markov_model(model_struc,return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
+my_markov_model(mygmod, n_cycles = 5,return_transition_prob=TRUE,return_state_payoffs=TRUE,return_trace=TRUE,return_cycle_payoffs=TRUE,return_payoff_summary=TRUE)
 
 ```
 
@@ -518,7 +476,7 @@ params <- list(pDieSick = 0.1,
                costAlive = 1000,
                costGetSick = 2000)
 
-mygmod <- gmod() + 
+gmod(name = "gmod") + 
   decisions("StandardOfCare") + 
   states(names = c("Alive", "Dead"), init_probs = c(1,0)) + 
   event(name = "get_sick",  
@@ -544,8 +502,7 @@ compute_cost <- function(state, get_sick){
   cost_state+cost_get_sick
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
-my_markov_model(model_struc,params=params)
+my_markov_model(mygmod, n_cycles = 5,params=params)
 
 ```
 
@@ -560,7 +517,7 @@ params <- list(pDieSick = 0.3, # was 0.1
                pDieNotSick = 0.01,
                costAlive = 1000, 
                costGetSick = 10000) # was 2000
-my_markov_model(model_struc,params=params)
+my_markov_model(mygmod, n_cycles =5,params=params)
 ```
 
 Being able to pass parameters as a list can be helpful when we conduct analyses using the gmod structure. For example, if we want to run a probabilistic sensitivity analysis, deterministic analyses, do value of information, or calibrate our model.

@@ -98,10 +98,10 @@ compute_cost <- function(decision){
 }
 ```
 
-To confirm that the functions are behaving as expected, it is always good to check them. the function `gmod_expand_functions(mygmod)` iterates through the functions and dependencies and produces a dataset for each function with the values.
+To confirm that the functions are behaving as expected, it is always good to check them. the function `gmod_evaluate_functions(mygmod)` iterates through the functions and dependencies and produces a dataset for each function with the values.
 
 ``` r
-gmod_expand_functions(mygmod)
+gmod_evaluate_functions(mygmod)
 # Note: The dataset  df_compute_cost  created for function  compute_cost .
 # Note: The dataset  df_pDie  created for function  pDie .
 

@@ -15,44 +15,43 @@ knitr::opts_chunk$set(
 )
 ```
 
-
-The purpose of this vignette is to demonstrate how gmod can be used to build common features of a decision model.  For a Markov modeling, please check the getting started with decision modeling vignette.  
-
-This vignette only explains the features one at a time to emphasize the feature and reduce complexity. For examples on getting started with Markov models instead please check the getting started with Markov model vignette and the introductory and advanced tutorial vignettes.  
-
-For a full decision tree model, please check the Herpes Simplex Virus (HSV) and the Doubilet vignettes.  
-
 # Overview of gmod:
-gmod is build on the grammar of modeling principle which describes a model using a simple syntax. gmod is inspired by the grammer of graphics (ggplot) package. Similar to ggplot which builds a graph by combining layers, gmod then *writes* the model code for you! 
+
+gmod is build on the grammar of modeling principle which describes a model using a simple syntax. gmod is inspired by the grammer of graphics (ggplot) package. Similar to ggplot which builds a graph by combining layers, gmod then *writes* the model code for you!
+
+The purpose of this vignette is to demonstrate how gmod can be used to build common features of a decision model. For a Markov modeling, please check the Markov model vignettes.
+
+This vignette only explains the features one at a time to emphasize the feature and reduce complexity. For examples on getting started with Markov models instead please check the getting started with Markov model vignette and the introductory and advanced tutorial vignettes.
+
+For full decision tree models, please check the Herpes Simplex Virus (HSV) and the Doubilet vignettes.
 
 ## gmod functions:
-gmod has two main functions. The first function is `gmod()` which takes in the type of the model (for now: `decision` and `Markov`), and the number of cycles `n_cycles` (if Markov), and creates a basic `gmod` object which can be supplemented with one or more layers containing the components of our deicsion.  
+
+The first function is `gmod()` which takes in the name we want to use for the model description `name`, and the number of cycles `n_cycles` (if Markov), and the name of the model function to be generated `model_function_name` creates creates a list containing model description and equation a basic `gmod` object which can be supplemented with one or more layers containing the components of our deicsion.
 
 gmod layers of a decision tree consist of the following:
 
-* `decisions`: the decisions or strategies that we want to compare
-* `event_mapping`: can be one or more. these describe how events control transition among various outcomes conditional on the decisions and previous events. 
-* `payoffs`: the payoffs, such as costs, effectiveness, utility, ... etc. Similar to the event probabilities, these can also depend on the decisions and prior events. 
+-   `decisions`: the decisions or strategies that we want to compare
+-   `event`: can be one or more. these describe how events control transition among various outcomes conditional on the decisions and previous events.
+-   `payoffs`: the payoffs, such as costs, effectiveness, utility, ... etc. Similar to the event probabilities, these can also depend on the decisions and prior events.
 
-The second function is `gmod_gen_model_function()` which returns does two things: 
+gmod then returns two things a list `name` and a model function `model_function_name`, which is a list containing the parsed objects from the gmod objects, such as a the equations involved in the final outcome probabilities and payoffs. This structure is needed for running the model function. `name` is required, but the model function name is not required, and will return `my_decision_model` if it is a decision tree, and a `my_markov_model` for a Markov model.
 
-1. it creates the model code as a new function named `my_decision_model` by default.
-2. it returns the model structure, which is a list containing the parsed objects from the gmod objects, such as a the equations involved in the final outcome probabilities and payoffs.  This structure is needed for running the model function.
+The `my_decision_model()` represents the entire model structure, and can be called directly in R (i.e., independent of the gmod package). This function takes in a parameter list `param` a model parameter values, and returns the results of the decision model, such as the discounted lifetime costs and quality adjusted life-years (QALYs). It can also return other intermediate outcomes, such as the event probabilities and payoffs. Please see the function definition and the documentations.
 
-The `my_decision_model()` represents the entire model structure, and can be called directly. This function takes in a parameter list `param` a model parameter values, and returns the results of the decision model, such as the discounted lifetime costs and quality adjusted life-years (QALYs).  It can also return other intermediate outcomes, such as the event probabilities and payoffs. Please see the function definition and the documentations.
-
-We will start with building a minimal decision model to illustrate the basic structure. Then, we will introduce how to add other features. For each feature, we will only show how to add that feature to reduce complexity. For full models that contain many of these features in the same model, please refer to the HSE and Doubilet et al vignettes. 
+We will start with building a minimal decision model to illustrate the basic structure. Then, we will introduce how to add other features. For each feature, we will only show how to add that feature to reduce complexity. For full models that contain many of these features in the same model, please refer to the HSE and Doubilet et al vignettes.
 
 # A minimal example
-We will adapt the sick-sicker model (ref) that we often use in our DARTH materials and teachings. 
 
-First, install gmod using devtools.  Also, make sure to enable use_vignettes so that vignettes render correctly.
+First, install gmod using devtools. Also, make sure to enable use_vignettes so that vignettes render correctly.
+
 ```{r}
 #library(devtools)
-#install_github("hjalal/gmod", use_vignettes = TRUE, force = TRUE)
+#install_github("hjalal/gmod")
 ```
 
-Then, load the `gmod` library and the `magrittr` library needed for the pipe `%>%` operator. 
+Then, load the `gmod` library and the `magrittr` library needed for the pipe `%>%` operator.
+
 ```{r setup}
 rm(list = ls())
 library(gmod)
@@ -60,12 +59,13 @@ library(magrittr)
 ```
 
 ## defining a basic Decision tree using gmod()
-We will start with a simple decision tree to analyze the outcome of a person who recently broke their leg in a rock-climbing accident.  The wound is infected and there are two options for treatment either amputate which lowers quality of life but has less probability of dying or antibiotics which saves the leg but has higher probability of death. 
+
+We will start with a simple decision tree to analyze the outcome of a person who recently broke their leg in a rock-climbing accident. The wound is infected and there are two options for treatment either amputate which lowers quality of life but has less probability of dying or antibiotics which saves the leg but has higher probability of death.
 
 We can write this decision problem in `gmod()` as:
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name = "mygmod") + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "die",  
             scenarios = c(T, F), 
@@ -76,19 +76,18 @@ mygmod <- gmod() +
 
 Here are the explanation of what each layer does:
 
-* `gmod(model_type = "Decision")`: creates the basic gmod object of type Decision.
-* `decisions("Amputate", "Antibiotics")`: define the two strategies involved.
-* `states("H", "S", "D")`: defines the Markov states: H for healthy, S for sick and D for dead.
-* `initial_probs(states = "H", probs = 1)`: defines that everyone starts in the healthy states.  See the function documentation for more variations.
-* `event_mapping(...)`: is the most important feature in gmod and it governs how the states are linked through events. There has to be at least one `event_mapping` layer, but there can be more events that can be linked to each other as we explain below. The event mapping takes in four arguments: event, values, outcomes, probs.  We will explain each of these separately: 
-  * `event = "die"`: defines the event name.  Each event must have a unique name that can be referenced by other evnets.
-  * `values = c(T, F)`: defines the values of that event: here `die` is a binary event and can be either `TRUE` of `FALSE`. multiple values are also possible.  
-  * `probs = c(pDie(decision), Inf))`: these are the probabilities of the event values.  A flexible feature of gmod is that it allows these probabilities to be conditional on other model components.  For decision trees, these probabilities can be functions of the decisions and the prior event values as we will explain below. Here we define pDie(decision) which only depends on the decision as there is only a single event (die).  In the next section, we define `pDie`. The `Inf` is used to tell gmod to compute the complementary probability (i.e., 1-pDie(decision)) to reduce the amount of typing needed. 
-  * `outcomes = c("Dead", "Alive")`: defines the outcomes of each one of the event values. `die==TRUE` will end up in the outcome `Dead`, and `die==FALSE` ends up in the Alive outcome.  
-* `payoffs(utility = compute_utility(decision, state))`: defines the payoffs. Here we only have a utility payoff that is dependent on the decision.  More than one payoff can be described here. And, similar to the probs argument these can be a function of other model components, such as the decision and prior event values.  
+-   `gmod(name = "mygmod")`: creates the basic gmod object
+-   `decisions("Amputate", "Antibiotics")`: defines the two strategies involved.
+    -   `event = "die"`: defines the only event name in this model. Each event must have a unique name that can be referenced by other events.
+    -   `values = c(T, F)`: defines the values of that event: here `die` is a binary event and can be either `TRUE` of `FALSE`. multiple values are also possible.
+    -   `probs = c(pDie(decision), Inf))`: these are the probabilities of the event values. A flexible feature of gmod is that it allows these probabilities to be conditional on other model components. For decision trees, these probabilities can be functions of the decisions and the prior event values as we will explain below. Here we define pDie(decision) which only depends on the decision as there is only a single event (die). In the next section, we define `pDie`. The `Inf` is used to tell gmod to compute the complementary probability (i.e., 1-pDie(decision)) to reduce the amount of typing needed.
+    -   `outcomes = c("Dead", "Alive")`: defines the outcomes of each one of the event values. `die==TRUE` will end up in the outcome `Dead`, and `die==FALSE` ends up in the Alive outcome.\
+-   `payoffs(utility = compute_utility(decision, state))`: defines the payoffs. Here we only have a utility payoff that is dependent on the decision. More than one payoff can be described here. And, similar to the probs argument these can be a function of other model components, such as the decision and prior event values.
 
 ## User-defined functions for probabilities and payoffs
+
 In this section, we define the two functions: `pDie` and `compute_utility` that we use above in our `event_mapping` and the `payoffs()` layers above:
+
 ```{r}
 # probability of death is 0.99 if the leg amputated and 0.8 if antibiotics given instead.
 pDie <- function(decision){
@@ -101,41 +100,40 @@ compute_utility <- function(decision, die){
   if(decision=="Amputate") 0.7 else 0.9
 }
 ```
-`pDie` is a simple function with a single `if...else` statement. Similarly compute_utility is also a simple function of the decision. Below we show how to make these a function of prior events. 
 
-As your functions get more complex, we recommended that you test them to make sure they return outcomes for all possible combinations of decisions and event values. For example, the simple code below tests the functions for all possible combinations of decisions.  
+`pDie` is a simple function with a single `if...else` statement. Similarly compute_utility is also a simple function of the decision. Below we show how to make these a function of prior events.
+
+As your functions get more complex, we recommended that you test them to make sure they return outcomes for all possible combinations of decisions and event values. For example, the function below evaluates the functions in your model and outputs the results in a two datasets. You can also export the results to an Microsoft Excel file.
+
 ```{r}
-for (decision in c("Amputate", "Antibiotics")){
-  for (die in c(TRUE, FALSE)){
-    cat("decision:", decision, " die :", die, " pDie:", pDie(decision), " utility:", compute_utility(decision, die), "\n")
-  }
-}
+gmod_evaluate_functions(mygmod)
 ```
+
 It looks like the functions are returning the correct values for each decision.
 
 ## Running the model
-Now we have all the ingredients to run the model. 
 
-First, we need to generate the model function code 
-```{r}
-model_struc <- gmod_gen_model_function(mygmod)
-```
-This will create the `model_struc` which contains the model equations and formulae and can be examined, and as stated in the generated note, this function also produces a function representation of the decision model.  The default name of this function is `my_decision_model.` 
+Now we have all the ingredients to run the model, using the generated model function name.
 
-Let's examine the content of these two object. First, let's check the model structure  
+Let's examine the content of these two object. First, let's check the model structure
+
 ```{r}
-model_struc # returns the model structure including the formulae before evaluation
+mygmod # returns the model structure including the formulae before evaluation
 ```
-examining the content of this structure can be helpful to debug a model by examining the individual layers and formulae.  For example $final_outcome_formulae returns the probability and cost formulae for each path and decision as plain text. These can be evaluated by calling them directly if needed. For example, if we want to know what is the probability of staying alive given Amputate, we can simply enter the value of probs corresponding decision=Amputate and final_outcome=Alive 
+
+examining the content of this structure can be helpful to debug a model by examining the individual layers and formulae. For example \$final_outcome_formulae returns the probability and cost formulae for each path and decision as plain text. These can be evaluated by calling them directly if needed. For example, if we want to know what is the probability of staying alive given Amputate, we can simply enter the value of probs corresponding decision=Amputate and final_outcome=Alive
+
 ```{r}
 (1-(pDie('Amputate')))
 ```
 
-Next, we can also examine the contents of the my_markov_model function which generates the text. 
+Next, we can also examine the contents of the my_markov_model function which generates the text.
+
 ```{r}
 my_decision_model #without parenthesis returns the function text
 ```
-The generated code is relatively simple given our example.  For more involved examples, please check the HSE and Doubilet vignettes. 
+
+The generated code is relatively simple given our example. For more involved examples, please check the HSE and Doubilet vignettes.
 
 Now, let's run the model function and generate our summary results of the expected utility for each decision
 
@@ -143,11 +141,10 @@ Now, let's run the model function and generate our summary results of the expect
 my_decision_model()
 ```
 
-
-## adding multiple events 
+## adding multiple events
 
 ```{r}
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "get_sick",  
             scenarios = c(T, F), 
@@ -176,14 +173,14 @@ compute_utility <- function(decision, get_sick, die){
   if(get_sick==TRUE)  u1*0.7 else u1
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
 my_decision_model()
 
 
 ```
 
 ## passing a parameter list to the model
-So far, we haven't passed any parameter lists to the model. The model has been retrieving the values it needs from the global environment or the vignette's environment.  Below we show how to pass parameters as a list:
+
+So far, we haven't passed any parameter lists to the model. The model has been retrieving the values it needs from the global environment or the vignette's environment. Below we show how to pass parameters as a list:
 
 ```{r}
 params <- list(pDieAmputate = 0.01,
@@ -191,7 +188,7 @@ params <- list(pDieAmputate = 0.01,
                uAmputate = 0.7,
                uAntibiotics = 0.9,
                uDead = 0)
-mygmod <- gmod() + 
+gmod(name="mygmod") + 
   decisions("Amputate", "Antibiotics") + 
   event(name = "die",  
             scenarios = c(T, F), 
@@ -209,12 +206,11 @@ compute_utility <- function(decision, die){
   if(decision=="Amputate") uAmputate else uAntibiotics
 }
 
-model_struc <- gmod_gen_model_function(mygmod)
 my_decision_model(params = params)
 ```
+
 This can be particularly helpful when doing deterministic and probabilistic sensitivity analyses where we can update the parameters in the list and pass them to the model function.
 
+In this vignettes we defined a decision model using gmod. We illustrated how to add decisions and events and how to link the event together. We illustrated how to make the probability of one event to rely on previous events values. We showed how to reveal the model structure and also the model function.
 
-In this vignettes we defined a decision model using gmod.  We illustrated how to add decisions and events and how to link the event together.  We illustrated how to make the probability of one event to rely on previous events values. We showed how to reveal the model structure and also the model function.  
-
-In addition, we illustrated how to add payoffs and make them functions of the decisions and previous event values.  
+In addition, we illustrated how to add payoffs and make them functions of the decisions and previous event values.

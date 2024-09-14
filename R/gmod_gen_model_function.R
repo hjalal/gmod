@@ -12,7 +12,7 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 
 #' Runs the markov model
 #' @description runs the markov model and returns the traces and summary outcomes
-#' @param model_struc a matrix containing the numerical gmod object from the gmod_parse() function
+#' @param gmod_obj a matrix containing the numerical gmod object from the gmod_parse() function
 #' @export
 #' 
 #' @return model_struc and generates model function code 
@@ -20,13 +20,13 @@ gmod_gen_model_function <- function(x, ...) UseMethod("gmod_gen_model_function")
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
 # end decisions
-gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles, 
+gmod_gen_model_function.gmod_markov <- function(gmod_obj, #n_cycles, 
                                                 model_function_name = "my_markov_model", 
                                                 print_model_function = FALSE, 
                                                 sparse = FALSE, 
                                                 return_model_structure = TRUE){
-  model_struc <- gmod_build(mygmod) #, n_cycles) 
-  model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
+  model_struc <- gmod_build(gmod_obj) #, n_cycles) 
+  model_lines <- paste0(model_function_name, "<- function(model_struc, params=NULL,n_cycles = NULL, return_transition_prob=FALSE,return_state_payoffs=FALSE,return_trace=FALSE,return_cycle_payoffs=FALSE,return_payoff_summary=TRUE){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir=.GlobalEnv)")
   
   # is model cycle dep? 
@@ -40,11 +40,11 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
   model_lines <- c(model_lines, paste0("decisions <- model_struc$decisions"))
   model_lines <- c(model_lines, paste0("tunnel_lengths <- model_struc$tunnel_lengths"))
   # replace tunnels that are infinite with the number of cycles
+  model_lines <- c(model_lines, "n_cycles <- if (is.null(n_cycles)) model_struc$n_cycles else n_cycles")
   model_lines <- c(model_lines, paste0("tunnel_lengths[is.infinite(tunnel_lengths)] <- n_cycles"))
   
   model_lines <- c(model_lines, "n_decisions <- model_struc$n_decisions")
   #n_cycles must be passed as a parameter
-  #model_lines <- c(model_lines, "n_cycles <- model_struc$n_cycles")
   model_lines <- c(model_lines, "cycles <- 1:n_cycles")
   states <- model_struc$states
   n_states <- model_struc$n_states
@@ -293,7 +293,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
 
 #' Title
 #'
-#' @param model_struc 
+#' @param gmod_obj 
 #' @param model_function_name 
 #' @param print_model_function 
 #'
@@ -302,8 +302,8 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
 #'
 #' @examples 
 #' print("see vignettes: vignettes(package='gmod')")
-gmod_gen_model_function.gmod_decision <- function(model_struc, model_function_name = "my_decision_model", print_model_function = FALSE, return_model_structure = TRUE){
-  model_struc <- gmod_build(mygmod)
+gmod_gen_model_function.gmod_decision <- function(gmod_obj, model_function_name = "my_decision_model", print_model_function = FALSE, return_model_structure = TRUE){
+  model_struc <- gmod_build(gmod_obj)
   # build model as a vector of strings 
   model_lines <- paste0(model_function_name, "<- function(params=NULL){")
   model_lines <- c(model_lines, "if (!is.null(params)) list2env(params, envir = .GlobalEnv)")

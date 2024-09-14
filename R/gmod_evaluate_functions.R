@@ -5,12 +5,12 @@
 #' @param fun_names 
 #' @param excel_file_name 
 #'
-#' @return 
+#' @return TRUE
 #' @export
 #'
-#' @examples 
+#' @examples TRUE
 #' 
-gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NULL){
+gmod_evaluate_functions <- function(gmod_obj, n_cycles = NULL, fun_names = NULL, excel_file_name=NULL){
   # for each function get the function arguments
   if (is.null(fun_names)){
     fun_names <- fun_in_gmod(gmod_obj)
@@ -24,7 +24,7 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
     # get the values for these arguments
     arg_value_list <- list()
     for (arg_name in arg_list){ #arg_name <- arg_list[1]
-      arg_value_list[[arg_name]] <- fun_get_arg_values(gmod_obj, arg_name)
+      arg_value_list[[arg_name]] <- fun_get_arg_values(gmod_obj, arg_name, n_cycles)
       
     }
     # create the combinatorials of the arguments
@@ -52,10 +52,10 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
   if (!is.null(excel_file_name)){
     openxlsx::saveWorkbook(wb, excel_file_name, overwrite = TRUE)
   }
-  
+  return(TRUE)
 }
 
-fun_get_arg_values <- function(gmod_obj, arg_name){
+fun_get_arg_values <- function(gmod_obj, arg_name, n_cycles){
   if (arg_name %in% c("decision", "state", "cycle", "cycle_in_state")){
     arg_name <- paste0(arg_name, "s")
     if (arg_name %in% c("decisions", "states")){
@@ -65,7 +65,12 @@ fun_get_arg_values <- function(gmod_obj, arg_name){
       lyr <- gmod_obj$layers[[index]]
       arg_values <- lyr[[arg_name]]
     } else if (arg_name %in% c("cycles","cycle_in_states")){
-      arg_values <- 1:n_cycles
+      if (!is.null(n_cycles)){
+        arg_values <- 1:n_cycles
+      } else {
+        stop("n_cycles must be provided, by specifying gmod_evaluate_functions(n_cycles = )")
+      }
+      
     }
   } else if (arg_name %in% c("final_outcome")){
     # only for decision trees

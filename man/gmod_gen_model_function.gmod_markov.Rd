@@ -5,7 +5,7 @@
 \title{Runs the markov model}
 \usage{
 \method{gmod_gen_model_function}{gmod_markov}(
-  mygmod,
+  gmod_obj,
   model_function_name = "my_markov_model",
   print_model_function = FALSE,
   sparse = FALSE,
@@ -13,7 +13,7 @@
 )
 }
 \arguments{
-\item{model_struc}{a matrix containing the numerical gmod object from the gmod_parse() function}
+\item{gmod_obj}{a matrix containing the numerical gmod object from the gmod_parse() function}
 }
 \value{
 model_struc and generates model function code

@@ -4,12 +4,10 @@
 \alias{gmod}
 \title{Create a new gmod}
 \usage{
-gmod()
+gmod(name, model_function_name = NULL)
 }
 \arguments{
 \item{model_type}{}
-
-\item{n_cycles}{= 50}
 }
 \value{
 a new gmod object
@@ -18,6 +16,6 @@ a new gmod object
 Create a new gmod
 }
 \examples{
-gmod(model_type = "Markov", n_cycles = 40)
+gmod(model_type = "Markov", n_cycles = 10)
 
 }

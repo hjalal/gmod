@@ -32,7 +32,7 @@ gmod_build.gmod_markov <- function(gmod_obj, #n_cycles,
   # here we will have an environment to parse the gmod_object
   #n_cycles <- gmod_obj$n_cycles
   model_obj <- list()
-  #model_obj$n_cycles <- n_cycles
+  model_obj$n_cycles <- gmod_obj$n_cycles
   model_obj$is_cycle_dep <- is_cycle_dep(gmod_obj)
   
   model_obj <- add_decision_info(gmod_obj, model_obj)

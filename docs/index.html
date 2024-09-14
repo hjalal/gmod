@@ -188,9 +188,9 @@
 <span><span class="va">compute_cost</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">decision</span><span class="op">)</span><span class="op">{</span></span>
 <span>  <span class="kw">if</span> <span class="op">(</span><span class="va">decision</span><span class="op">==</span><span class="st">"NewTreatment"</span><span class="op">)</span> <span class="fl">1000</span> <span class="kw">else</span> <span class="fl">0</span></span>
 <span><span class="op">}</span></span></code></pre></div>
-<p>To confirm that the functions are behaving as expected, it is always good to check them. the function <code>gmod_expand_functions(mygmod)</code> iterates through the functions and dependencies and produces a dataset for each function with the values.</p>
+<p>To confirm that the functions are behaving as expected, it is always good to check them. the function <code>gmod_evaluate_functions(mygmod)</code> iterates through the functions and dependencies and produces a dataset for each function with the values.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="reference/gmod_expand_functions.html">gmod_expand_functions</a></span><span class="op">(</span><span class="va">mygmod</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="reference/gmod_evaluate_functions.html">gmod_evaluate_functions</a></span><span class="op">(</span><span class="va">mygmod</span><span class="op">)</span></span>
 <span><span class="co"># Note: The dataset  df_compute_cost  created for function  compute_cost .</span></span>
 <span><span class="co"># Note: The dataset  df_pDie  created for function  pDie .</span></span>
 <span></span>
