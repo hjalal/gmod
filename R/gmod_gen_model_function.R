@@ -112,7 +112,7 @@ gmod_gen_model_function.gmod_markov <- function(mygmod, #n_cycles,
       model_lines <- c(model_lines, "state <- state_comp$state")
       model_lines <- c(model_lines, "cycle_in_state <- state_comp$cycle_in_state")
     } else {
-      model_lines <- c(model_lines, "state <- state_expanded")
+      model_lines <- c(model_lines, "state <- sub('_tnl.*', '', state_expanded)")
     }
     
     if(dest=="'curr_state'"){ # if dest == current state, then add prob to existing prob
