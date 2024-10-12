@@ -19,6 +19,7 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
   if (!is.null(excel_file_name)){
     wb <- openxlsx::createWorkbook()
   }
+  dt_fun_list <- list()
   for (fun_name in fun_names){
     arg_list <- get_function_arguments(fun_name)
     # get the values for these arguments
@@ -39,10 +40,13 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
       }
       x[i] <- do.call(fun_name, y)
     }
-    values_df[fun_name] <- x
-    variable_name <- paste0("df_", fun_name)
-    cat("Note: The dataset ", variable_name, " created for function ", fun_name, ".\n", sep = "")
-    assign(variable_name, values_df, envir = .GlobalEnv)
+    values_df$p <- x
+    values_dt <- as.data.table(values_df)
+    dt_fun_list[[fun_name]] <- values_dt
+    
+    #variable_name <- paste0("dt_", fun_name)
+    #cat("Note: The dataset ", variable_name, " created for function ", fun_name, ".\n", sep = "")
+    #assign(variable_name, values_dt, envir = .GlobalEnv)
     # add sheets to workbook
     if (!is.null(excel_file_name)){
       openxlsx::addWorksheet(wb, fun_name)
@@ -52,8 +56,9 @@ gmod_expand_functions <- function(gmod_obj, fun_names = NULL, excel_file_name=NU
   if (!is.null(excel_file_name)){
     openxlsx::saveWorkbook(wb, excel_file_name, overwrite = TRUE)
   }
-  
+  return(dt_fun_list)
 }
+
 
 fun_get_arg_values <- function(gmod_obj, arg_name){
   if (arg_name %in% c("decision", "state", "cycle", "cycle_in_state")){

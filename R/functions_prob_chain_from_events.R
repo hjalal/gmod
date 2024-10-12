@@ -59,20 +59,29 @@ get_prob_chain <- function(gmod_obj, events_df, end_state, is_curr_state = FALSE
   return(gmod_obj)
 }
 
-get_prob_chain_markov <- function(gmod_obj, events_df, end_state){
+get_prob_chain_markov <- function(gmod_obj, events_dt){
+  path_id <- 0
+  states_layer <- gmod:::retrieve_layer_by_type(gmod_obj, type = "states")
+  states <- states_layer$states# no tunnel states
+  path_df_list <- list()
+  for (dest in c(states, "curr_state")){
   # get the row id sequences for for each event chain
-  event_chains <- get_event_chain_ids(events_df, outcomes_id = end_state)
+  event_chains <- gmod:::get_event_chain_ids(events_dt, outcomes_id = dest)
   # convert to strings with * between each element and + between each chain
-  for (event_chain in event_chains){
-    gmod_obj$path_id <- gmod_obj$path_id + 1
-    gmod_obj$path_df_list[[gmod_obj$path_id]] <- data.frame(
-      path_id = rep(gmod_obj$path_id, length(event_chain)),
-      chain_id = event_chain,
-      dest = end_state)
+  for (event_chain0 in event_chains){
+    event_chain <- event_chain0[event_chain0 > 0]
+    path_id <- path_id + 1
+    path_df_list[[path_id]] <- data.table(
+      path_id = rep(path_id, length(event_chain)),
+      id = event_chain,
+      dest = dest)
   }
+  }
+  
+  result_dt <- rbindlist(path_df_list, fill = TRUE)
+  return(result_dt)
   #prob_chain <- build_prob_chain(events_df, event_chains)
   #if (prob_chain == "()"){prob_chain <- "0"}
-  return(gmod_obj)
 }
 
 

@@ -45,7 +45,7 @@ probs2string <- function(input_string) {
   #extracted_elements <- gsub("^c\\((.*)\\)$", "\\1", input_string)
   # Split the elements by comma (,) and remove leading/trailing spaces
   # remove complement in "inf"
-  inf_index <- y == "Inf"
+  inf_index <- y == "#"
   if (any(inf_index)){
     sum_others <- paste0(y[!inf_index], collapse = "+")
     y[inf_index] <- paste0("1-(", sum_others, ")")

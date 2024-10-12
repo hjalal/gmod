@@ -77,7 +77,7 @@ event <- function(name, scenarios, probs, outcomes){
   list(type = "event", 
        event = name, 
        values = scenarios, 
-       probs = probs2string(input_string),
+       probs = probs, #probs2string(input_string),
        outcomes = outcomes #,
        #payoffs = payoffs_string
   )
