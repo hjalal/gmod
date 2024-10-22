@@ -1,3 +1,5 @@
+![gmod hex sticker](./hex_sticker.png)
+
 # Grammar of Modeling (gmod)
 
 ## Documentation and Tutorials
