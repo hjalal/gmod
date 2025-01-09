@@ -1,111 +1,39 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>/404.html</loc>
-  </url>
-  <url>
-    <loc>/LICENSE.html</loc>
-  </url>
-  <url>
-    <loc>/articles/D0_getting_started_decision_models.html</loc>
-  </url>
-  <url>
-    <loc>/articles/D1_decision_tree_DARTH_HVE_example.html</loc>
-  </url>
-  <url>
-    <loc>/articles/D2_gmod_decision_tree.html</loc>
-  </url>
-  <url>
-    <loc>/articles/D3_dec_tree_Doubilet_1985_example.html</loc>
-  </url>
-  <url>
-    <loc>/articles/M0_getting_started_markov_gmod.html</loc>
-  </url>
-  <url>
-    <loc>/articles/M1_gmod_intro_markov_tutorial.html</loc>
-  </url>
-  <url>
-    <loc>/articles/M2_gmod_advanced_markov_tutorial.html</loc>
-  </url>
-  <url>
-    <loc>/articles/M3_Markov_age_dep.html</loc>
-  </url>
-  <url>
-    <loc>/articles/index.html</loc>
-  </url>
-  <url>
-    <loc>/authors.html</loc>
-  </url>
-  <url>
-    <loc>/index.html</loc>
-  </url>
-  <url>
-    <loc>/reference/decisions.html</loc>
-  </url>
-  <url>
-    <loc>/reference/event.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_build.gmod_decision.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_build.gmod_markov.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_build.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_evaluate.gmod_decision.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_evaluate.gmod_markov.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_evaluate.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_expand_functions.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_gen_model_function.gmod_decision.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_gen_model_function.gmod_markov.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_gen_model_function.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_parse.gmod_decision.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_parse.gmod_markov.html</loc>
-  </url>
-  <url>
-    <loc>/reference/gmod_parse.html</loc>
-  </url>
-  <url>
-    <loc>/reference/index.html</loc>
-  </url>
-  <url>
-    <loc>/reference/payoffs.html</loc>
-  </url>
-  <url>
-    <loc>/reference/plus-.gmod_class.html</loc>
-  </url>
-  <url>
-    <loc>/reference/prob2rate.html</loc>
-  </url>
-  <url>
-    <loc>/reference/rate2prob.html</loc>
-  </url>
-  <url>
-    <loc>/reference/states.html</loc>
-  </url>
-  <url>
-    <loc>/reference/tunnel2state.html</loc>
-  </url>
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/LICENSE.html</loc></url>
+<url><loc>/articles/D0_getting_started_decision_models.html</loc></url>
+<url><loc>/articles/D1_decision_tree_DARTH_HVE_example.html</loc></url>
+<url><loc>/articles/D2_gmod_decision_tree.html</loc></url>
+<url><loc>/articles/D3_dec_tree_Doubilet_1985_example.html</loc></url>
+<url><loc>/articles/M0_getting_started_markov_gmod.html</loc></url>
+<url><loc>/articles/M1_gmod_intro_markov_tutorial.html</loc></url>
+<url><loc>/articles/M2_gmod_advanced_markov_tutorial.html</loc></url>
+<url><loc>/articles/M3_Markov_age_dep.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/reference/decisions.html</loc></url>
+<url><loc>/reference/event.html</loc></url>
+<url><loc>/reference/gmod.html</loc></url>
+<url><loc>/reference/gmod_build.gmod_decision.html</loc></url>
+<url><loc>/reference/gmod_build.gmod_markov.html</loc></url>
+<url><loc>/reference/gmod_build.html</loc></url>
+<url><loc>/reference/gmod_evaluate.gmod_decision.html</loc></url>
+<url><loc>/reference/gmod_evaluate.gmod_markov.html</loc></url>
+<url><loc>/reference/gmod_evaluate.html</loc></url>
+<url><loc>/reference/gmod_expand_functions.html</loc></url>
+<url><loc>/reference/gmod_gen_model_function.gmod_decision.html</loc></url>
+<url><loc>/reference/gmod_gen_model_function.gmod_markov.html</loc></url>
+<url><loc>/reference/gmod_gen_model_function.html</loc></url>
+<url><loc>/reference/gmod_parse.gmod_decision.html</loc></url>
+<url><loc>/reference/gmod_parse.gmod_markov.html</loc></url>
+<url><loc>/reference/gmod_parse.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/payoffs.html</loc></url>
+<url><loc>/reference/plus-.gmod_class.html</loc></url>
+<url><loc>/reference/prob2rate.html</loc></url>
+<url><loc>/reference/rate2prob.html</loc></url>
+<url><loc>/reference/states.html</loc></url>
+<url><loc>/reference/tunnel2state.html</loc></url>
 </urlset>
+
