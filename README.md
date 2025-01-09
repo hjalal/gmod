@@ -1,4 +1,4 @@
-![gmod hex sticker](./hex_sticker.png)
+# Active development of `gmod` is now moved to `twig` 
 
 # Grammar of Modeling (gmod)
 

@@ -1,6 +1,6 @@
 # Helper functions
 .onAttach <- function(libname, pkgname) {
-  packageStartupMessage('To get started with GMOD, please check the vignettes by typing browseVignettes(package = "gmod").')
+  packageStartupMessage('Please note that active development of gmod is now moved to twig. Please install twig https://hjalal.github.io/twig/ and review the vignettes for the latest features.')
 }
 
 get_named_pairs <- function(...) {
